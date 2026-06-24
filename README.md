@@ -25,7 +25,7 @@ On first startup the container runs `prisma db push` automatically.
 ### Pull from GHCR
 
 ```bash
-docker pull ghcr.io/la-cueva-entertainment/lovecali:latest
+docker pull ghcr.io/la-cueva-entertainment/memorial-album:latest
 ```
 
 ## Environment variables
