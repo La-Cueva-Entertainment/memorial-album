@@ -19,6 +19,7 @@ const COVER_GRADIENTS = [
 export default function AlbumsView({ admin, accent }: Props) {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [defaultAlbumLink, setDefaultAlbumLink] = useState<string | null>(null);
+  const [defaultAlbumName, setDefaultAlbumName] = useState('Cali\'s photos');
   const [defaultAlbumCoverAssetId, setDefaultAlbumCoverAssetId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,10 +31,11 @@ export default function AlbumsView({ admin, accent }: Props) {
     setLoading(true);
     fetch('/api/albums')
       .then(r => r.ok ? r.json() : { albums: [], defaultAlbumLink: null, defaultAlbumCoverAssetId: null })
-      .then((data: { albums: Album[]; defaultAlbumLink: string | null; defaultAlbumCoverAssetId: string | null }) => {
+      .then((data: { albums: Album[]; defaultAlbumLink: string | null; defaultAlbumCoverAssetId: string | null; defaultAlbumName?: string }) => {
         setAlbums(data.albums ?? []);
         setDefaultAlbumLink(data.defaultAlbumLink);
         setDefaultAlbumCoverAssetId(data.defaultAlbumCoverAssetId ?? null);
+        if (data.defaultAlbumName) setDefaultAlbumName(data.defaultAlbumName);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -98,7 +100,7 @@ export default function AlbumsView({ admin, accent }: Props) {
             </div>
           ) : (
             <button onClick={() => { setLinkDraft(defaultAlbumLink ?? ''); setEditingLink(true); }} style={{ fontFamily: "'Spectral', serif", fontSize: 13, background: 'transparent', color: '#9a8e79', border: '1px solid #d8cdb9', borderRadius: 18, padding: '5px 14px', cursor: 'pointer' }}>
-              ✎ {defaultAlbumLink ? 'edit shared album link' : 'set shared album link'}
+              ✎ {defaultAlbumLink ? 'edit main upload album link' : 'set main upload album link'}
             </button>
           )}
         </div>
@@ -162,7 +164,7 @@ export default function AlbumsView({ admin, accent }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 18, marginBottom: 36 }}>
           {/* Pinned: default shared album */}
           {defaultAlbumLink && (
-            <DefaultAlbumCard link={defaultAlbumLink} coverAssetId={defaultAlbumCoverAssetId} />
+            <DefaultAlbumCard link={defaultAlbumLink} coverAssetId={defaultAlbumCoverAssetId} name={defaultAlbumName} admin={admin} onNameChange={setDefaultAlbumName} onCoverChange={setDefaultAlbumCoverAssetId} />
           )}
           {albums.map((album, idx) => (
             <AlbumCard
@@ -202,12 +204,57 @@ export default function AlbumsView({ admin, accent }: Props) {
 
 // ── Default (shared) album card — always pinned first ─────────────────────────
 
-function DefaultAlbumCard({ link, coverAssetId }: { link: string; coverAssetId: string | null }) {
+function DefaultAlbumCard({ link, coverAssetId, name, admin, onNameChange, onCoverChange }: { link: string; coverAssetId: string | null; name: string; admin: boolean; onNameChange: (n: string) => void; onCoverChange: (assetId: string) => void }) {
   const [coverLoaded, setCoverLoaded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerPhotos, setPickerPhotos] = useState<{ id: string }[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const coverSrc = coverAssetId ? `/api/immich/thumbnail?assetId=${coverAssetId}` : null;
 
+  const openPicker = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setPickerOpen(true);
+    setPickerLoading(true);
+    try {
+      const r = await fetch('/api/immich/browse');
+      const data = await r.json() as { assets?: { id: string; type?: string }[] };
+      setPickerPhotos((data.assets ?? []).filter(a => !a.type || a.type.toUpperCase() === 'IMAGE'));
+    } catch { /* ignore */ } finally {
+      setPickerLoading(false);
+    }
+  };
+
+  const pickCover = async (assetId: string) => {
+    await fetch('/api/site-config', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ default_album_cover_asset_id: assetId }),
+    });
+    onCoverChange(assetId);
+    setCoverLoaded(false);
+    setPickerOpen(false);
+  };
+
+  const saveName = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed) { setDraft(name); setEditing(false); return; }
+    await fetch('/api/site-config', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ default_album_name: trimmed }),
+    });
+    onNameChange(trimmed);
+    setEditing(false);
+  };
+
   return (
-    <a href={link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block', position: 'relative' }}>
+    <>
+    <a href={link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block', position: 'relative' }}
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+    >
       {/* "featured" badge */}
       <div style={{
         position: 'absolute', top: -10, left: 12, zIndex: 3,
@@ -237,12 +284,67 @@ function DefaultAlbumCard({ link, coverAssetId }: { link: string; coverAssetId: 
           />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, rgba(0,0,0,.1) 60%, transparent 100%)' }} />
+        {/* Admin: change cover overlay */}
+        {admin && hovered && !editing && (
+          <div onClick={e => e.preventDefault()} style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.35)', zIndex: 2 }}>
+            <button onClick={openPicker} style={{ fontFamily: "'Spectral', serif", fontSize: 13, background: 'rgba(255,255,255,.2)', border: '1px solid rgba(255,255,255,.5)', color: '#fff', borderRadius: 18, padding: '7px 16px', cursor: 'pointer' }}>change cover</button>
+          </div>
+        )}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '36px 14px 14px' }}>
-          <div style={{ fontFamily: "'Caveat', cursive", fontSize: 24, color: '#fff', lineHeight: 1.1 }}>Cali&apos;s photos</div>
+          {admin && editing ? (
+            <div onClick={e => e.preventDefault()} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                autoFocus
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setDraft(name); setEditing(false); } }}
+                style={{ fontFamily: "'Caveat', cursive", fontSize: 20, background: 'rgba(255,255,255,.2)', border: '1px solid rgba(255,255,255,.5)', color: '#fff', borderRadius: 8, padding: '2px 8px', outline: 'none', width: 0, flex: 1 }}
+              />
+              <button onClick={saveName} style={{ background: 'rgba(255,255,255,.25)', border: 'none', color: '#fff', borderRadius: 12, padding: '3px 10px', cursor: 'pointer', fontSize: 13, fontFamily: "'Spectral', serif" }}>save</button>
+            </div>
+          ) : (
+            <div
+              style={{ fontFamily: "'Caveat', cursive", fontSize: 24, color: '#fff', lineHeight: 1.1, cursor: admin ? 'text' : undefined, display: 'inline-block' }}
+              onClick={admin ? e => { e.preventDefault(); setDraft(name); setEditing(true); } : undefined}
+              title={admin ? 'Click to rename' : undefined}
+            >{name}</div>
+          )}
           <div style={{ fontFamily: "'Spectral', serif", fontSize: 12, color: 'rgba(255,255,255,.8)', marginTop: 4, fontStyle: 'italic' }}>browse &amp; add your own &#8599;</div>
         </div>
       </div>
     </a>
+
+    {/* Cover picker modal */}
+    {pickerOpen && (
+      <div onClick={() => setPickerOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(15,10,5,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background: '#f7f2e9', borderRadius: 18, maxWidth: 680, width: '100%', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 60px rgba(0,0,0,.45)' }}>
+          <div style={{ padding: '18px 22px 12px', borderBottom: '1px solid #e2d6bf', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: "'Caveat', cursive", fontSize: 22, color: '#3a342d' }}>pick a cover photo</span>
+            <button onClick={() => setPickerOpen(false)} style={{ background: 'transparent', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9a8e79' }}>✕</button>
+          </div>
+          <div style={{ overflowY: 'auto', padding: 16 }}>
+            {pickerLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, fontFamily: "'Spectral', serif", color: '#9a8e79' }}>loading photos…</div>
+            ) : pickerPhotos.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, fontFamily: "'Spectral', serif", color: '#9a8e79', fontStyle: 'italic' }}>no photos found</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 }}>
+                {pickerPhotos.map(p => (
+                  <button key={p.id} onClick={() => pickCover(p.id)} style={{ padding: 0, border: '2px solid transparent', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', aspectRatio: '1', background: '#ece5d8' }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#b5704f')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'transparent')}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/api/immich/thumbnail?assetId=${p.id}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
