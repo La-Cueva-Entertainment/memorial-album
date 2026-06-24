@@ -86,7 +86,7 @@ export async function saveUpload(buffer: Buffer, ext = 'jpg', originalBuffer?: B
       form.append('deviceId', 'memorial-scrapbook');
       form.append('fileCreatedAt', now);
       form.append('fileModifiedAt', now);
-      form.append('assetData', new Blob([uploadBuf], { type: uploadMime }), `upload.${uploadExt}`);
+      form.append('assetData', new Blob([new Uint8Array(uploadBuf)], { type: uploadMime }), `upload.${uploadExt}`);
 
       const uploadRes = await fetch(`${serverUrl}/api/assets`, {
         method: 'POST',
