@@ -8,7 +8,7 @@ interface Props {
   accent: string;
 }
 
-const ALBUM_LINK = process.env.NEXT_PUBLIC_DEFAULT_ALBUM_LINK ?? '';
+const ALBUM_LINK_FALLBACK = process.env.NEXT_PUBLIC_DEFAULT_ALBUM_LINK ?? '';
 const BUBBLE_COLORS = ['#fff8ef', '#fff0f5', '#f0f8ff', '#f5fff0', '#fff5f0', '#f8f0ff'];
 const ROTATIONS = [-1.8, 0.9, -0.6, 1.4, -1.1, 0.4, 1.9, -0.3];
 
@@ -67,6 +67,7 @@ function MediaLightbox({ assetId, assetType, albumLink, onClose }: { assetId: st
 // ── Main component ────────────────────────────────────────────────────────────
 export default function QuotesView({ admin, accent }: Props) {
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [albumLink, setAlbumLink] = useState(ALBUM_LINK_FALLBACK);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -79,6 +80,11 @@ export default function QuotesView({ admin, accent }: Props) {
   const [attachFile, setAttachFile] = useState<File | null>(null);
 
   useEffect(() => {
+    fetch('/api/site-config')
+      .then(r => r.ok ? r.json() : {})
+      .then((cfg: Record<string, string>) => { if (cfg.default_album_link) setAlbumLink(cfg.default_album_link); })
+      .catch(() => {});
+
     fetch('/api/quotes')
       .then(r => r.ok ? r.json() : [])
       .then((data: Quote[]) => { setQuotes(data); setLoading(false); })
@@ -89,41 +95,49 @@ export default function QuotesView({ admin, accent }: Props) {
     const text = quoteRef.current?.value.trim();
     if (!text || submitting) return;
     setSubmitting(true); setError('');
-
-    let immichAssetId: string | null = null;
-    if (attachFile) {
-      setUploading(true);
-      const fd = new FormData(); fd.append('file', attachFile);
-      const upRes = await fetch('/api/immich/upload', { method: 'POST', body: fd });
-      setUploading(false);
-      if (upRes.ok) {
-        const upData = await upRes.json() as { assetId?: string };
-        immichAssetId = upData.assetId ?? null;
-      } else {
-        const upErr = await upRes.json().catch(() => ({})) as { error?: string };
-        setError(upErr.error ?? 'Attachment upload failed.');
-        setSubmitting(false); return;
+    try {
+      let immichAssetId: string | null = null;
+      if (attachFile) {
+        setUploading(true);
+        const fd = new FormData(); fd.append('file', attachFile);
+        let upRes: Response;
+        try {
+          upRes = await fetch('/api/immich/upload', { method: 'POST', body: fd });
+        } finally {
+          setUploading(false);
+        }
+        if (upRes!.ok) {
+          const upData = await upRes!.json() as { assetId?: string };
+          immichAssetId = upData.assetId ?? null;
+        } else {
+          const upErr = await upRes!.json().catch(() => ({})) as { error?: string };
+          setError(upErr.error ?? 'Attachment upload failed.');
+          setSubmitting(false); return;
+        }
       }
-    }
 
-    const context = contextRef.current?.value.trim() ?? '';
-    const immichAssetType = attachFile ? (attachFile.type.startsWith('video/') ? 'video' : 'image') : '';
-    const res = await fetch('/api/quotes', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, context, immichAssetId, immichAssetType }),
-    });
-    if (res.ok) {
-      const quote: Quote = await res.json();
-      setQuotes(prev => [quote, ...prev]);
-      if (quoteRef.current) quoteRef.current.value = '';
-      if (contextRef.current) contextRef.current.value = '';
-      setAttachFile(null);
-      if (fileRef.current) fileRef.current.value = '';
-    } else {
-      const data = await res.json().catch(() => ({})) as { error?: string };
-      setError(data.error ?? 'Could not add quote.');
+      const context = contextRef.current?.value.trim() ?? '';
+      const immichAssetType = attachFile ? (attachFile.type.startsWith('video/') ? 'video' : 'image') : '';
+      const res = await fetch('/api/quotes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, context, immichAssetId, immichAssetType }),
+      });
+      if (res.ok) {
+        const quote: Quote = await res.json();
+        setQuotes(prev => [quote, ...prev]);
+        if (quoteRef.current) quoteRef.current.value = '';
+        if (contextRef.current) contextRef.current.value = '';
+        setAttachFile(null);
+        if (fileRef.current) fileRef.current.value = '';
+      } else {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        setError(data.error ?? 'Could not add quote. Please try again.');
+      }
+    } catch {
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const removeQuote = async (id: string) => {
@@ -181,12 +195,12 @@ export default function QuotesView({ admin, accent }: Props) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 18 }}>
           {quotes.map((quote, i) => (
-            <QuoteCard key={quote.id} quote={quote} bg={BUBBLE_COLORS[i % BUBBLE_COLORS.length]} rot={ROTATIONS[i % ROTATIONS.length]} admin={admin} onRemove={() => removeQuote(quote.id)} albumLink={ALBUM_LINK} onOpenMedia={(id, type) => setLightbox({ assetId: id, assetType: type })} />
+            <QuoteCard key={quote.id} quote={quote} bg={BUBBLE_COLORS[i % BUBBLE_COLORS.length]} rot={ROTATIONS[i % ROTATIONS.length]} admin={admin} onRemove={() => removeQuote(quote.id)} albumLink={albumLink} onOpenMedia={(id, type) => setLightbox({ assetId: id, assetType: type })} />
           ))}
         </div>
       )}
 
-      {lightbox && <MediaLightbox assetId={lightbox.assetId} assetType={lightbox.assetType} albumLink={ALBUM_LINK} onClose={() => setLightbox(null)} />}
+      {lightbox && <MediaLightbox assetId={lightbox.assetId} assetType={lightbox.assetType} albumLink={albumLink} onClose={() => setLightbox(null)} />}
     </div>
   );
 }

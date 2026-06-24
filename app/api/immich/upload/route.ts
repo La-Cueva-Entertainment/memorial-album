@@ -87,8 +87,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Immich returned ${res.status}: ${errText}` }, { status: 502 });
     }
 
-    const data = await res.json() as { id?: string };
+    const data = await res.json() as { id?: string; status?: string };
     if (!data.id) return NextResponse.json({ error: 'No asset ID returned from Immich' }, { status: 502 });
+
+    // 'duplicate' means Immich already has this file — data.id is the existing asset, still valid to use
 
     // Add to memorial album if configured
     if (albumId && /^[a-zA-Z0-9_-]+$/.test(albumId)) {

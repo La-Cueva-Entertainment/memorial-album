@@ -22,6 +22,9 @@ export default function AlbumsView({ admin, accent }: Props) {
   const [defaultAlbumCoverAssetId, setDefaultAlbumCoverAssetId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState(false);
+  const [linkDraft, setLinkDraft] = useState('');
+  const [savingLink, setSavingLink] = useState(false);
 
   const fetchAlbums = useCallback(() => {
     setLoading(true);
@@ -51,6 +54,18 @@ export default function AlbumsView({ admin, accent }: Props) {
     setAlbums(prev => prev.filter(a => a.id !== id));
   };
 
+  const saveDefaultLink = async () => {
+    setSavingLink(true);
+    await fetch('/api/site-config', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ default_album_link: linkDraft.trim() }),
+    });
+    setDefaultAlbumLink(linkDraft.trim() || null);
+    setSavingLink(false);
+    setEditingLink(false);
+  };
+
   const albumLimitReached = albums.length >= 50;
 
   return (
@@ -64,6 +79,30 @@ export default function AlbumsView({ admin, accent }: Props) {
           tap an album to open it and add your own photos. don&apos;t have one? just hit &ldquo;add your photos.&rdquo;
         </p>
       </div>
+
+      {/* Admin: edit default album link */}
+      {admin && (
+        <div style={{ textAlign: 'center', marginBottom: 18 }}>
+          {editingLink ? (
+            <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <input
+                value={linkDraft}
+                onChange={e => setLinkDraft(e.target.value)}
+                placeholder="https://photos.example.com/share/..."
+                style={{ fontFamily: "'Spectral', serif", fontSize: 13, border: '1px solid #d8cdb9', borderRadius: 8, padding: '6px 10px', width: 320, outline: 'none' }}
+              />
+              <button onClick={saveDefaultLink} disabled={savingLink} style={{ fontFamily: "'Spectral', serif", fontSize: 13, background: accent, color: '#fff', border: 'none', borderRadius: 18, padding: '6px 16px', cursor: 'pointer' }}>
+                {savingLink ? 'saving…' : 'save'}
+              </button>
+              <button onClick={() => setEditingLink(false)} style={{ fontFamily: "'Spectral', serif", fontSize: 13, background: 'transparent', color: '#9a8e79', border: '1px solid #d8cdb9', borderRadius: 18, padding: '6px 12px', cursor: 'pointer' }}>cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => { setLinkDraft(defaultAlbumLink ?? ''); setEditingLink(true); }} style={{ fontFamily: "'Spectral', serif", fontSize: 13, background: 'transparent', color: '#9a8e79', border: '1px solid #d8cdb9', borderRadius: 18, padding: '5px 14px', cursor: 'pointer' }}>
+              ✎ {defaultAlbumLink ? 'edit shared album link' : 'set shared album link'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Primary actions — always visible (mobile + desktop) */}
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>

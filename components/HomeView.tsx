@@ -15,9 +15,9 @@ interface ImmichAsset { id: string; type?: string }
 const ALBUM_SHARE_LINK = process.env.NEXT_PUBLIC_DEFAULT_ALBUM_LINK ?? '';
 
 // Build the Immich shared-album URL for a given asset (opens lightbox directly)
-function immichAssetUrl(assetId: string): string {
-  if (!ALBUM_SHARE_LINK) return '#';
-  return `${ALBUM_SHARE_LINK}/photos/${assetId}?assetId=${assetId}`;
+function immichAssetUrl(assetId: string, link: string): string {
+  if (!link) return '#';
+  return `${link}/photos/${assetId}?assetId=${assetId}`;
 }
 
 // Shuffle array (Fisher-Yates)
@@ -34,6 +34,7 @@ const ROTS = [-13, 9, -7, 11, -15, 6, -10, 8, -12, 5];
 
 export default function HomeView({ admin, accent, onNav }: Props) {
   const [portrait, setPortrait] = useState<string | null>(null);
+  const [albumShareLink, setAlbumShareLink] = useState(ALBUM_SHARE_LINK);
   const [albumPhotos, setAlbumPhotos] = useState<ImmichAsset[]>([]);
   const [displayedPhotos, setDisplayedPhotos] = useState<ImmichAsset[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -56,6 +57,7 @@ export default function HomeView({ admin, accent, onNav }: Props) {
       .then(r => r.ok ? r.json() : {})
       .then((cfg: Record<string, string>) => {
         if (cfg.bio_hero_img_path) setPortrait(cfg.bio_hero_img_path);
+        if (cfg.default_album_link) setAlbumShareLink(cfg.default_album_link);
       })
       .catch(() => {});
 
@@ -97,26 +99,37 @@ export default function HomeView({ admin, accent, onNav }: Props) {
       if (res.ok) {
         const data = await res.json() as { assetId?: string };
         if (data.assetId) {
-          await fetch('/api/site-config', {
+          const saveRes = await fetch('/api/site-config', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ bio_hero_img_path: `immich:${data.assetId}` }),
           });
-          setPortrait(`immich:${data.assetId}`);
+          if (saveRes.ok) {
+            setPortrait(`immich:${data.assetId}`);
+          } else {
+            alert('Photo uploaded but could not save as portrait. Please try again.');
+          }
         }
+      } else {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        alert(err.error ?? 'Upload failed. Please try again.');
       }
-    } catch { /* ignore */ } finally {
+    } catch { alert('Upload failed. Please check your connection.'); } finally {
       setUploading(false);
     }
   }, [admin]);
 
   const setPortraitFromImmich = useCallback(async (assetId: string) => {
-    await fetch('/api/site-config', {
+    const saveRes = await fetch('/api/site-config', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bio_hero_img_path: `immich:${assetId}` }),
     });
-    setPortrait(`immich:${assetId}`);
+    if (saveRes.ok) {
+      setPortrait(`immich:${assetId}`);
+    } else {
+      alert('Could not save portrait. Please try again.');
+    }
     setPickerOpen(false);
   }, []);
 
@@ -143,7 +156,7 @@ export default function HomeView({ admin, accent, onNav }: Props) {
         {/* Left polaroids — desktop only via CSS */}
         <div suppressHydrationWarning style={{ display: isDesktop && leftPhotos.length > 0 ? 'flex' : 'none', flexDirection: 'column', gap: 14, paddingTop: 36, flexShrink: 0 }}>
             {leftPhotos.map((asset, i) => (
-              <MiniPolaroid key={asset.id} assetId={asset.id} rot={ROTS[i * 2] ?? -8} immichUrl={immichAssetUrl(asset.id)} />
+              <MiniPolaroid key={asset.id} assetId={asset.id} rot={ROTS[i * 2] ?? -8} immichUrl={immichAssetUrl(asset.id, albumShareLink)} />
             ))}
         </div>
 
@@ -235,7 +248,7 @@ export default function HomeView({ admin, accent, onNav }: Props) {
         {/* Right polaroids — desktop only via CSS */}
         <div suppressHydrationWarning style={{ display: isDesktop && rightPhotos.length > 0 ? 'flex' : 'none', flexDirection: 'column', gap: 14, paddingTop: 52, flexShrink: 0 }}>
             {rightPhotos.map((asset, i) => (
-              <MiniPolaroid key={asset.id} assetId={asset.id} rot={ROTS[i * 2 + 1] ?? 6} immichUrl={immichAssetUrl(asset.id)} />
+              <MiniPolaroid key={asset.id} assetId={asset.id} rot={ROTS[i * 2 + 1] ?? 6} immichUrl={immichAssetUrl(asset.id, albumShareLink)} />
             ))}
         </div>
       </div>

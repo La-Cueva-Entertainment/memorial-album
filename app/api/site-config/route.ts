@@ -22,6 +22,7 @@ export async function PATCH(req: NextRequest) {
     'bio_hero_immich_id', 'bio_hero_img_path', 'bio_location',
     'event_date', 'event_time', 'event_where', 'event_venue',
     'event_dress', 'event_dress_note', 'event_bring', 'event_notes',
+    'default_album_link',
   ];
 
   for (const [key, value] of Object.entries(body)) {

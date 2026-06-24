@@ -6,7 +6,9 @@ import { randomUUID } from 'crypto';
 /** GET /api/albums — list albums + default album info */
 export async function GET() {
   const albums = await db.album.findMany({ orderBy: { createdAt: 'desc' } });
-  const defaultAlbumLink = process.env.DEFAULT_ALBUM_LINK ?? null;
+  // Prefer DB-stored link (editable from admin panel) over env var
+  const dbConfig = await db.siteConfig.findUnique({ where: { key: 'default_album_link' } });
+  const defaultAlbumLink = dbConfig?.value || process.env.DEFAULT_ALBUM_LINK || null;
 
   // Fetch the default Immich album's cover asset ID so the UI can show a thumbnail
   let defaultAlbumCoverAssetId: string | null = null;

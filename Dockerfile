@@ -5,7 +5,7 @@ WORKDIR /app
 # Install ALL deps (including devDeps for the build)
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -15,7 +15,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 # Provide a placeholder DB URL so the build succeeds without a mounted volume
 ENV DATABASE_URL=file:/tmp/build.db
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 # ─── Stage 2: Production image ────────────────────────────────────────────────
 FROM node:24-alpine AS runner
@@ -30,7 +30,7 @@ RUN apk add --no-cache openssl libssl3 || apk add --no-cache openssl
 # Install only production deps (prisma is now in dependencies, so it's included)
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci --omit=dev && npx prisma generate
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev && npx prisma generate
 
 # Copy built app
 COPY --from=builder /app/.next ./.next
