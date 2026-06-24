@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 /** Derive the public-facing origin from the request, respecting reverse-proxy headers. */
 function getOrigin(req: NextRequest): string {
   const fwdProto = req.headers.get('x-forwarded-proto')?.split(',')[0].trim();
-  const fwdHost  = req.headers.get('x-forwarded-host')?.split(',')[0].trim();
+  const fwdHost  = req.headers.get('x-forwarded-host')?.split(',')[0].trim()
+                ?? req.headers.get('host')?.split(',')[0].trim();
   if (fwdProto && fwdHost) return `${fwdProto}://${fwdHost}`;
   const { protocol, host } = new URL(req.url);
   return process.env.NEXT_PUBLIC_BASE_URL ?? `${protocol}//${host}`;

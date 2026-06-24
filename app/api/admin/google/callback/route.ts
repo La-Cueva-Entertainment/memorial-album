@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get('error');
 
   const fwdProto = req.headers.get('x-forwarded-proto')?.split(',')[0].trim();
-  const fwdHost  = req.headers.get('x-forwarded-host')?.split(',')[0].trim();
+  const fwdHost  = req.headers.get('x-forwarded-host')?.split(',')[0].trim()
+                ?? req.headers.get('host')?.split(',')[0].trim();
   const reqOrigin = (fwdProto && fwdHost)
     ? `${fwdProto}://${fwdHost}`
     : (() => { const u = new URL(req.url); return process.env.NEXT_PUBLIC_BASE_URL ?? `${u.protocol}//${u.host}`; })();
