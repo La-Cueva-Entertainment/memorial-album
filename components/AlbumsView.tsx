@@ -284,13 +284,13 @@ function DefaultAlbumCard({ link, coverAssetId, name, admin, onNameChange, onCov
           />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,.75) 0%, rgba(0,0,0,.1) 60%, transparent 100%)' }} />
-        {/* Admin: change cover overlay */}
+        {/* Admin: change cover overlay — only top portion so it doesn't block the name */}
         {admin && hovered && !editing && (
-          <div onClick={e => e.preventDefault()} style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.35)', zIndex: 2 }}>
+          <div onClick={e => e.preventDefault()} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: '40%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.35)', zIndex: 2 }}>
             <button onClick={openPicker} style={{ fontFamily: "'Spectral', serif", fontSize: 13, background: 'rgba(255,255,255,.2)', border: '1px solid rgba(255,255,255,.5)', color: '#fff', borderRadius: 18, padding: '7px 16px', cursor: 'pointer' }}>change cover</button>
           </div>
         )}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '36px 14px 14px' }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '36px 14px 14px', zIndex: 3 }}>
           {admin && editing ? (
             <div onClick={e => e.preventDefault()} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input
