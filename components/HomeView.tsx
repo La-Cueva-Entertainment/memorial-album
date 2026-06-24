@@ -61,6 +61,14 @@ export default function HomeView({ admin, accent, onNav }: Props) {
       })
       .catch(() => {});
 
+    // Fallback: also read from /api/albums which checks DB then env var
+    fetch('/api/albums')
+      .then(r => r.ok ? r.json() : {})
+      .then((data: { defaultAlbumLink?: string | null }) => {
+        if (data.defaultAlbumLink) setAlbumShareLink(data.defaultAlbumLink);
+      })
+      .catch(() => {});
+
     fetch('/api/immich/browse')
       .then(r => r.ok ? r.json() : { assets: [] })
       .then((data: { assets?: ImmichAsset[] }) => {
