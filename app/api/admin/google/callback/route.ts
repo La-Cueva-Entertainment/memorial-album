@@ -25,7 +25,12 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get('code');
   const error = searchParams.get('error');
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? '';
+  const fwdProto = req.headers.get('x-forwarded-proto')?.split(',')[0].trim();
+  const fwdHost  = req.headers.get('x-forwarded-host')?.split(',')[0].trim();
+  const reqOrigin = (fwdProto && fwdHost)
+    ? `${fwdProto}://${fwdHost}`
+    : (() => { const u = new URL(req.url); return process.env.NEXT_PUBLIC_BASE_URL ?? `${u.protocol}//${u.host}`; })();
+  const baseUrl = reqOrigin;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI ?? `${baseUrl}/api/admin/google/callback`;
 
   if (error || !code) {

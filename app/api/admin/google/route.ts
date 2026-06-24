@@ -1,12 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+
+/** Derive the public-facing origin from the request, respecting reverse-proxy headers. */
+function getOrigin(req: NextRequest): string {
+  const fwdProto = req.headers.get('x-forwarded-proto')?.split(',')[0].trim();
+  const fwdHost  = req.headers.get('x-forwarded-host')?.split(',')[0].trim();
+  if (fwdProto && fwdHost) return `${fwdProto}://${fwdHost}`;
+  const { protocol, host } = new URL(req.url);
+  return process.env.NEXT_PUBLIC_BASE_URL ?? `${protocol}//${host}`;
+}
 
 /**
  * GET /api/admin/google
  * Redirects to Google OAuth consent screen.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI ?? `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/admin/google/callback`;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI ?? `${getOrigin(req)}/api/admin/google/callback`;
 
   if (!clientId) {
     return NextResponse.json({ error: 'Google OAuth not configured' }, { status: 501 });
