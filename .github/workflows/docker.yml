@@ -39,7 +39,7 @@ jobs:
 
       - name: Set image name
         id: image
-        run: echo "name=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/lovecali" >> $GITHUB_OUTPUT
+        run: echo "name=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/memorial-album" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v6
