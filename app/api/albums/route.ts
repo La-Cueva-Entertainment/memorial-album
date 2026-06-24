@@ -7,8 +7,10 @@ import { randomUUID } from 'crypto';
 export async function GET() {
   const albums = await db.album.findMany({ orderBy: { createdAt: 'desc' } });
   // Prefer DB-stored link (editable from admin panel) over env var
-  const dbConfig = await db.siteConfig.findMany({ where: { key: { in: ['default_album_link', 'default_album_name'] } } });
-  const dbMap = Object.fromEntries(dbConfig.map(r => [r.key, r.value]));\n  const defaultAlbumLink = dbMap.default_album_link || process.env.DEFAULT_ALBUM_LINK || null;\n  const defaultAlbumName = dbMap.default_album_name || null;
+  const dbConfig = await db.siteConfig.findMany({ where: { key: { in: ['default_album_link', 'default_album_name', 'default_album_cover_asset_id'] } } });
+  const dbMap = Object.fromEntries(dbConfig.map(r => [r.key, r.value]));
+  const defaultAlbumLink = dbMap.default_album_link || process.env.DEFAULT_ALBUM_LINK || null;
+  const defaultAlbumName = dbMap.default_album_name || null;
 
   // Fetch the default Immich album's cover asset ID — prefer admin-picked override from DB
   let defaultAlbumCoverAssetId: string | null = dbMap.default_album_cover_asset_id || null;
