@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_SITE_NAME ?? 'Memorial Scrapbook',
+  title: process.env.NEXT_PUBLIC_SITE_NAME ?? 'Kathryn Cali Lee',
   description: 'A shared memorial scrapbook',
   robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
 };
