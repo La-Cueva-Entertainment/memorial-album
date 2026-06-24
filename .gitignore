@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+
+# Prisma generated client
+prisma/generated/
+
+# Runtime data (database + user uploads) — mount as Docker volume
+data/
+
+# Env (contains secrets — copy .env.example → .env.local to get started)
+.env.local
+.env
+
+# ── Design-reference files (prototype + original spec) ────────────────────────
+# These contain site-specific personal details and are not part of the app code.
+Memorial Scrapbook.dc.html
+support.js
+PROMPT.md
+screenshots/
+# Root uploads folder is the original design asset (tile is in public/assets/)
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.swp

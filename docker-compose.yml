@@ -1,0 +1,18 @@
+services:
+  lovecali:
+    image: ghcr.io/la-cueva-entertainment/lovecali:latest
+    # To build locally instead of pulling:
+    # build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data          # database + user uploads
+    environment:
+      DATABASE_URL: file:./data/dev.db
+      SESSION_SECRET: "change-me-to-a-random-32-char-string"
+      ADMIN_PASSWORD: "change-me"
+      NEXT_PUBLIC_SITE_NAME: ""   # Name shown in the banner
+      NEXT_PUBLIC_SITE_DATES: ""  # e.g. "1965 – 2024"
+      NEXT_PUBLIC_SITE_ACCENT: "#b5704f"
+      REQUIRE_INVITE: "false"     # Set to "true" to gate posting behind invites
+    restart: unless-stopped

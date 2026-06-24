@@ -1,0 +1,32 @@
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+@keyframes slidefade {
+  from { opacity: 0; transform: scale(1.015); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(90, 70, 50, 0.3);
+  border-radius: 6px;
+}
+
+/* Remove default outline; rely on focus-visible */
+:focus { outline: none; }
+:focus-visible { outline: 2px solid #b5704f; outline-offset: 2px; }
+
+/* Prevent user-select on the crop frame drag area */
+.crop-frame { user-select: none; }

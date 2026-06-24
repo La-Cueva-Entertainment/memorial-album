@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Item {
+  id            String    @id @default(cuid())
+  imgPath       String
+  caption       String    @default("")
+  author        String    @default("Anonymous")
+  ts            DateTime  @default(now())
+  source        String    // 'board' | 'gallery'
+  angle         Float?
+  sortOrder     Int       @default(0)
+  status        String    @default("approved")
+  immichAssetId String?
+  comments      Comment[]
+}
+
+model Comment {
+  id     String   @id @default(cuid())
+  itemId String
+  item   Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  text   String
+  author String   @default("Anonymous")
+  ts     DateTime @default(now())
+}
+
+model GuestbookNote {
+  id     String   @id @default(cuid())
+  text   String
+  author String   @default("Anonymous")
+  ts     DateTime @default(now())
+}
+
+// ── Auth / invitations ────────────────────────────────────────────────────────
+
+model Invitation {
+  id        String    @id @default(cuid())
+  token     String    @unique @default(cuid())
+  note      String    @default("")
+  role      String    @default("contributor") // 'admin' | 'contributor' | 'super_contributor'
+  multiUse  Boolean   @default(false)
+  useCount  Int       @default(0)
+  usedAt    DateTime?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  users     User[]
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String     @default("Anonymous")
+  role      String     @default("contributor") // 'admin' | 'contributor' | 'super_contributor'
+  inviteId  String?
+  invite    Invitation? @relation(fields: [inviteId], references: [id])
+  createdAt DateTime   @default(now())
+}
+
+model Track {
+  id       String   @id @default(cuid())
+  title    String
+  filename String
+  ts       DateTime @default(now())
+}
+
+model Quote {
+  id            String       @id @default(cuid())
+  text          String
+  author        String       @default("Cali")
+  immichAssetId String?
+  ts            DateTime     @default(now())
+  replies       QuoteReply[]
+}
+
+model QuoteReply {
+  id            String   @id @default(cuid())
+  quoteId       String
+  quote         Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  text          String
+  author        String   @default("anonymous")
+  immichAssetId String?
+  ts            DateTime @default(now())
+}
+
+model SiteConfig {
+  key   String @id
+  value String @default("")
+}
+
+model FavoriteThing {
+  id       String   @id @default(cuid())
+  name     String
+  emoji    String   @default("⭐")
+  category String   @default("")
+  ts       DateTime @default(now())
+}
+
+model OceanSprayPost {
+  id      String   @id @default(cuid())
+  title   String
+  body    String   @default("")
+  imgPath String?
+  pinned  Boolean  @default(false)
+  ts      DateTime @default(now())
+}
