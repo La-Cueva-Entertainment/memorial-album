@@ -11,17 +11,15 @@ function isImage(a: ImmichAsset) {
 }
 
 async function fetchAssets(serverUrl: string, apiKey: string, albumId?: string): Promise<ImmichAsset[]> {
-  // If an album is specified, fetch just that album's assets
+  // If an album is specified, fetch just that album's assets — do NOT fall back to all assets
   if (albumId && /^[a-zA-Z0-9_-]+$/.test(albumId)) {
-    try {
-      const res = await fetch(`${serverUrl}/api/albums/${albumId}`, {
-        headers: { 'x-api-key': apiKey, Accept: 'application/json' },
-      });
-      if (res.ok) {
-        const data = await res.json() as { assets?: ImmichAsset[] };
-        if (Array.isArray(data.assets)) return data.assets.filter(isImage);
-      }
-    } catch { /* fall through */ }
+    const res = await fetch(`${serverUrl}/api/albums/${albumId}`, {
+      headers: { 'x-api-key': apiKey, Accept: 'application/json' },
+    });
+    if (!res.ok) throw new Error(`Album fetch failed: HTTP ${res.status}. Check IMMICH_ALBUM_ID and API key.`);
+    const data = await res.json() as { assets?: ImmichAsset[] };
+    if (!Array.isArray(data.assets)) throw new Error('Album response missing assets array');
+    return data.assets.filter(isImage);
   }
 
   // Strategy 1: GET /api/assets with new pagination
