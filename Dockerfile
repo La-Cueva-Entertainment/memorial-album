@@ -24,6 +24,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# libssl1.1 is required by the Prisma query engine on Alpine
+RUN apk add --no-cache openssl libssl3 || apk add --no-cache openssl
+
 # Install only production deps (prisma is now in dependencies, so it's included)
 COPY package*.json ./
 COPY prisma ./prisma/
