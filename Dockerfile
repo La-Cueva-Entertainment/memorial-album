@@ -43,4 +43,4 @@ EXPOSE 3000
 ENV PORT=3000
 
 # On startup: push schema to DB (creates tables if first run), then start Next.js
-CMD ["/bin/sh", "-c", "export DATABASE_URL=\"${DATABASE_URL:-file:./data/dev.db}\"; npx prisma db push --skip-generate 2>/dev/null; exec npm start"]
+CMD ["/bin/sh", "-c", "export DATABASE_URL=\"${DATABASE_URL:-file:/app/data/dev.db}\"; npx prisma db push --skip-generate; exec npm start"]
