@@ -1,373 +1,225 @@
-﻿'use client';
+'use client';
 
-import { useRef, useState } from 'react';
-import type { Quote, QuoteReply } from '@/types';
+import { useEffect, useRef, useState } from 'react';
+import type { Quote } from '@/types';
 
 interface Props {
-  quotes: Quote[];
   admin: boolean;
   accent: string;
-  onAddQuote: (q: Quote) => void;
-  onRemoveQuote: (id: string) => void;
 }
 
-// Warm pastel tones for bubbles
-const BUBBLE_COLORS = [
-  '#fff8ef', '#fff0f5', '#f0f8ff', '#f5fff0', '#fff5f0', '#f8f0ff',
-];
-
-// Slight rotations for a "pinned to wall" feel
+const ALBUM_LINK = process.env.NEXT_PUBLIC_DEFAULT_ALBUM_LINK ?? '';
+const BUBBLE_COLORS = ['#fff8ef', '#fff0f5', '#f0f8ff', '#f5fff0', '#fff5f0', '#f8f0ff'];
 const ROTATIONS = [-1.8, 0.9, -0.6, 1.4, -1.1, 0.4, 1.9, -0.3];
 
-type AssetType = 'image' | 'video' | 'unknown';
-
-interface MediaPreviewProps {
-  assetId: string;
-}
-
-function ImmichMedia({ assetId }: MediaPreviewProps) {
-  const [type, setType] = useState<AssetType>('unknown');
-
-  if (type === 'video') {
-    return (
-      <div style={{ marginTop: 10, borderRadius: 10, overflow: 'hidden', background: '#211d18' }}>
-        <video
-          src={`/api/immich/video?assetId=${assetId}`}
-          controls
-          style={{ width: '100%', maxHeight: 280, display: 'block', borderRadius: 10 }}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: 10, borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={`/api/immich/thumbnail?assetId=${assetId}`}
-        alt="attachment"
-        onLoad={() => setType('image')}
-        onError={() => setType('video')}
-        style={{ width: '100%', maxHeight: 220, objectFit: 'cover', display: type === 'unknown' ? 'none' : 'block', borderRadius: 10 }}
-      />
-      {type === 'unknown' && (
-        <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(247,242,233,.5)', borderRadius: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid #d8cdb9', borderTopColor: '#b5704f', animation: 'spin .8s linear infinite' }} />
-        </div>
-      )}
-    </div>
+// ── Media lightbox ────────────────────────────────────────────────────────────
+function MediaLightbox({ assetId, assetType, albumLink, onClose }: { assetId: string; assetType: string; albumLink: string; onClose: () => void }) {
+  // If type known from DB use it, otherwise probe via video onCanPlay/onError
+  const [resolvedType, setResolvedType] = useState<'video' | 'image' | 'probing'>(
+    assetType === 'video' ? 'video' : assetType === 'image' ? 'image' : 'probing'
   );
-}
+  const imgSrc = `/api/immich/thumbnail?assetId=${assetId}`;
+  const vidSrc = `/api/immich/video?assetId=${assetId}`;
 
-function ReplyPanel({ quoteId, initialReplies, accent }: { quoteId: string; initialReplies: QuoteReply[]; accent: string }) {
-  const [open, setOpen] = useState(false);
-  const [replies, setReplies] = useState<QuoteReply[]>(initialReplies);
-  const [text, setText] = useState('');
-  const [author, setAuthor] = useState('');
-  const [attachFile, setAttachFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadErr, setUploadErr] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const replyFileRef = useRef<HTMLInputElement>(null);
-
-  const submit = async () => {
-    if (!text.trim() || submitting) return;
-    setSubmitting(true);
-    setUploadErr('');
-    let immichAssetId: string | null = null;
-
-    if (attachFile) {
-      setUploading(true);
-      const fd = new FormData();
-      fd.append('file', attachFile);
-      const upRes = await fetch('/api/uploads/media', { method: 'POST', body: fd });
-      if (upRes.ok) {
-        const data = await upRes.json() as { assetId: string };
-        immichAssetId = data.assetId;
-      } else {
-        const err = await upRes.json().catch(() => ({ error: 'Upload failed' })) as { error: string };
-        setUploadErr(err.error ?? 'Upload failed');
-        setUploading(false);
-        setSubmitting(false);
-        return;
-      }
-      setUploading(false);
-    }
-
-    const res = await fetch(`/api/quotes/${quoteId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.trim(), author: author.trim() || 'anonymous', immichAssetId }),
-    });
-    if (res.ok) {
-      const r: QuoteReply = await res.json();
-      setReplies(prev => [...prev, r]);
-      setText(''); setAuthor(''); setAttachFile(null);
-      if (replyFileRef.current) replyFileRef.current.value = '';
-    }
-    setSubmitting(false);
-  };
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
 
   return (
-    <div style={{ marginTop: 10, borderTop: '1px dashed #e2dac9', paddingTop: 8 }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Caveat', cursive", fontSize: 14, color: '#9a8e79', padding: 0, display: 'flex', alignItems: 'center', gap: 5 }}
-      >
-        💬 {replies.length > 0 ? `${replies.length} response${replies.length !== 1 ? 's' : ''}` : 'add a response'} {open ? '▲' : '▼'}
-      </button>
-
-      {open && (
-        <div style={{ marginTop: 10 }}>
-          {/* Existing replies */}
-          {replies.map(r => (
-            <div key={r.id} style={{ marginBottom: 10, paddingLeft: 10, borderLeft: `3px solid ${accent}44` }}>
-              {r.immichAssetId && <ImmichMedia assetId={r.immichAssetId} />}
-              <div style={{ fontFamily: "'Caveat', cursive", fontSize: 17, color: '#3a342d', marginTop: r.immichAssetId ? 6 : 0 }}>{r.text}</div>
-              <div style={{ fontFamily: "'Spectral', serif", fontStyle: 'italic', fontSize: 12, color: '#b0a48e', marginTop: 2 }}>— {r.author}</div>
-            </div>
-          ))}
-
-          {/* Add reply form */}
-          <div style={{ background: 'rgba(247,242,233,.7)', borderRadius: 10, padding: '10px 12px', marginTop: 4 }}>
-            <textarea
-              value={text}
-              onChange={e => setText(e.target.value)}
-              placeholder="share a memory or response…"
-              rows={2}
-              style={{ width: '100%', fontFamily: "'Caveat', cursive", fontSize: 16, border: '1px solid #e2dac9', borderRadius: 8, padding: '6px 8px', outline: 'none', background: '#fbf7ef', color: '#3a342d', resize: 'none', boxSizing: 'border-box' }}
-            />
-            <input
-              value={author}
-              onChange={e => setAuthor(e.target.value)}
-              placeholder="your name (optional)"
-              style={{ display: 'block', width: '100%', fontFamily: "'Caveat', cursive", fontSize: 14, border: 'none', borderBottom: '1px solid #e2dac9', padding: '4px 2px', outline: 'none', background: 'none', color: '#9a8e79', marginTop: 4, boxSizing: 'border-box' }}
-            />
-            <input ref={replyFileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={e => setAttachFile(e.target.files?.[0] ?? null)} />
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => replyFileRef.current?.click()}
-                style={{ fontFamily: "'Caveat', cursive", fontSize: 13, background: 'none', border: 'none', color: attachFile ? accent : '#b0a48e', cursor: 'pointer', padding: 0 }}
-              >
-                📎 {attachFile ? attachFile.name.slice(0, 24) : 'attach a photo or video'}
-              </button>
-              {attachFile && <button type="button" onClick={() => { setAttachFile(null); if (replyFileRef.current) replyFileRef.current.value = ''; }} style={{ background: 'none', border: 'none', color: '#b0a48e', cursor: 'pointer', fontSize: 13, padding: 0 }}>✕</button>}
-            </div>
-            {uploadErr && <div style={{ fontFamily: "'Caveat', cursive", fontSize: 13, color: '#b23b2e', marginTop: 4 }}>{uploadErr}</div>}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-              <button
-                onClick={submit}
-                disabled={submitting || uploading || !text.trim()}
-                style={{ fontFamily: "'Caveat', cursive", fontSize: 15, background: accent, color: '#fff', border: 'none', padding: '5px 16px', borderRadius: 14, cursor: 'pointer', opacity: submitting || uploading || !text.trim() ? 0.5 : 1 }}
-              >
-                {uploading ? 'uploading…' : submitting ? 'posting…' : 'post'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function QuotesView({ quotes, admin, accent, onAddQuote, onRemoveQuote }: Props) {
-  const textRef = useRef<HTMLTextAreaElement>(null);
-  const authorRef = useRef<HTMLInputElement>(null);
-  const attachFileRef = useRef<HTMLInputElement>(null);
-  const [attachFile, setAttachFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadErr, setUploadErr] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-
-  const handleSubmit = async () => {
-    const text = textRef.current?.value.trim();
-    if (!text || submitting) return;
-    setSubmitting(true);
-    setUploadErr('');
-    const author = authorRef.current?.value.trim() || 'Cali';
-    let immichAssetId: string | null = null;
-
-    if (attachFile) {
-      setUploading(true);
-      const fd = new FormData();
-      fd.append('file', attachFile);
-      const upRes = await fetch('/api/uploads/media', { method: 'POST', body: fd });
-      if (upRes.ok) {
-        const data = await upRes.json() as { assetId: string };
-        immichAssetId = data.assetId;
-      } else {
-        const err = await upRes.json().catch(() => ({ error: 'Upload failed' })) as { error: string };
-        setUploadErr(err.error ?? 'Upload failed');
-        setUploading(false);
-        setSubmitting(false);
-        return;
-      }
-      setUploading(false);
-    }
-
-    const res = await fetch('/api/quotes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, author, immichAssetId }),
-    });
-    if (res.ok) {
-      const q: Quote = await res.json();
-      onAddQuote(q);
-      if (textRef.current) textRef.current.value = '';
-      if (authorRef.current) authorRef.current.value = '';
-      setAttachFile(null);
-      if (attachFileRef.current) attachFileRef.current.value = '';
-      setFormOpen(false);
-    }
-    setSubmitting(false);
-  };
-
-  const handleRemove = async (id: string) => {
-    await fetch(`/api/quotes/${id}`, { method: 'DELETE' });
-    onRemoveQuote(id);
-  };
-
-  return (
-    <>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 22px 0' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(26px,3.4vw,36px)', fontWeight: 700, color: '#fff', textShadow: '0 2px 10px rgba(60,40,20,.45)' }}>
-            words of wisdom
-          </div>
-          <div style={{ fontFamily: "'Spectral', serif", fontStyle: 'italic', fontSize: 15, color: '#5b4a36', background: 'rgba(247,242,233,.8)', display: 'inline-block', padding: '4px 16px', borderRadius: 18, marginTop: 8 }}>
-            things Cali said that stuck with us
-          </div>
-        </div>
-
-        {/* Add quote — collapsed by default */}
-        <div style={{ maxWidth: 600, margin: '0 auto 48px' }}>
-          {!formOpen ? (
-            <div style={{ textAlign: 'center' }}>
-              <button
-                onClick={() => setFormOpen(true)}
-                style={{ fontFamily: "'Caveat', cursive", fontSize: 18, background: 'rgba(247,242,233,.9)', color: '#5b4a36', border: `1.5px dashed ${accent}`, padding: '9px 28px', borderRadius: 22, cursor: 'pointer', boxShadow: '0 3px 10px rgba(60,40,20,.15)' }}
-              >
-                📌 pin a quote to the wall
-              </button>
-            </div>
-          ) : (
-            <div style={{ background: 'rgba(247,242,233,.95)', borderRadius: 16, boxShadow: '0 8px 24px rgba(50,35,20,.18)', padding: '20px 22px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ fontFamily: "'Caveat', cursive", fontSize: 21, color: '#5b4a36' }}>📌 pin a quote to the wall</div>
-                <button onClick={() => setFormOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9a8e79', fontSize: 20, lineHeight: 1 }}>✕</button>
-              </div>
-          <textarea
-            ref={textRef}
-            placeholder="something she said that you'll never forget…"
-            rows={3}
-            style={{ width: '100%', fontFamily: "'Caveat', cursive", fontSize: 20, border: '1.5px solid #e2dac9', borderRadius: 10, padding: '10px 12px', outline: 'none', background: '#fbf7ef', color: '#3a342d', resize: 'vertical', boxSizing: 'border-box' }}
-          />
-          <input
-            ref={authorRef}
-            placeholder="attributed to… (default: Cali)"
-            style={{ display: 'block', width: '100%', fontFamily: "'Caveat', cursive", fontSize: 16, border: 'none', borderBottom: '1.5px solid #e2dac9', padding: '6px 4px', outline: 'none', background: 'none', color: '#9a8e79', marginTop: 8, boxSizing: 'border-box' }}
-          />
-
-          {/* File attachment */}
-          <input ref={attachFileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={e => setAttachFile(e.target.files?.[0] ?? null)} />
-          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => attachFileRef.current?.click()}
-              style={{ fontFamily: "'Caveat', cursive", fontSize: 16, background: 'none', border: 'none', color: attachFile ? accent : '#9a8e79', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              📎 {attachFile ? attachFile.name.slice(0, 30) : 'attach a photo or video'}
-            </button>
-            {attachFile && <button type="button" onClick={() => { setAttachFile(null); if (attachFileRef.current) attachFileRef.current.value = ''; }} style={{ background: 'none', border: 'none', color: '#9a8e79', cursor: 'pointer', fontSize: 16, padding: 0 }}>✕</button>}
-          </div>
-          {uploadErr && <div style={{ fontFamily: "'Caveat', cursive", fontSize: 14, color: '#b23b2e', marginTop: 6 }}>{uploadErr}</div>}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || uploading}
-              style={{ fontFamily: "'Caveat', cursive", fontSize: 20, background: accent, color: '#fff', border: 'none', padding: '9px 28px', borderRadius: 22, cursor: 'pointer', opacity: submitting || uploading ? 0.6 : 1, boxShadow: '0 4px 12px rgba(120,70,40,.28)' }}
-            >
-              {uploading ? 'uploading…' : submitting ? 'pinning…' : 'pin it 📌'}
-            </button>
-          </div>
-            </div>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,10,5,.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fadein .2s ease' }}>
+      <div onClick={e => e.stopPropagation()} style={{ maxWidth: 720, width: '100%', position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          {albumLink && (
+            <a href={albumLink} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Spectral', serif", fontSize: 13, color: 'rgba(255,255,255,.65)', fontStyle: 'italic' }}>
+              view in album &#8599;
+            </a>
           )}
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 18, padding: '6px 14px', borderRadius: 20, cursor: 'pointer', marginLeft: 'auto' }}>close</button>
         </div>
-
-        {/* Empty state */}
-        {quotes.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', fontFamily: "'Caveat', cursive", fontSize: 26, color: 'rgba(255,255,255,.6)' }}>
-            no quotes yet — pin the first one above
+        {/* Video: known type OR probing — try playing; if it errors, show image instead */}
+        {(resolvedType === 'video' || resolvedType === 'probing') && (
+          <video
+            src={vidSrc}
+            controls
+            autoPlay
+            onCanPlay={() => setResolvedType('video')}
+            onError={() => setResolvedType('image')}
+            style={{ width: '100%', borderRadius: 12, display: resolvedType === 'video' ? 'block' : 'none', maxHeight: '80vh' }}
+          />
+        )}
+        {/* Image: known type OR fallback after video probe failed */}
+        {resolvedType === 'image' && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imgSrc} alt="attachment" style={{ width: '100%', borderRadius: 12, display: 'block', maxHeight: '80vh', objectFit: 'contain' }} />
+        )}
+        {resolvedType === 'probing' && (
+          <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(255,255,255,.3)', borderTopColor: '#fff', animation: 'spin 1s linear infinite' }} />
           </div>
         )}
-
-        {/* Quote wall — masonry-like grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 36, paddingBottom: 60, alignItems: 'start' }}>
-          {quotes.map((q, i) => {
-            const bg = BUBBLE_COLORS[i % BUBBLE_COLORS.length];
-            const rot = ROTATIONS[i % ROTATIONS.length];
-
-            return (
-              <div
-                key={q.id}
-                style={{ position: 'relative', transform: `rotate(${rot}deg)`, transformOrigin: 'center top', transition: 'transform .18s, box-shadow .18s' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'rotate(0deg) scale(1.025)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = `rotate(${rot}deg)`; }}
-              >
-                {/* Push-pin */}
-                <div style={{ position: 'absolute', top: -16, left: '50%', transform: 'translateX(-50%)', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ width: 15, height: 15, borderRadius: '50%', background: accent, boxShadow: '0 2px 8px rgba(0,0,0,.4)', border: '2px solid rgba(255,255,255,.7)' }} />
-                  <div style={{ width: 3, height: 11, background: '#8a7060', borderRadius: '0 0 2px 2px', marginTop: -2 }} />
-                </div>
-
-                {/* Bubble body */}
-                <div style={{ background: bg, borderRadius: 16, boxShadow: '0 8px 28px rgba(50,35,20,.18), 0 2px 6px rgba(50,35,20,.08)', padding: '26px 20px 22px', position: 'relative' }}>
-                  {/* Big decorative quote mark */}
-                  <div style={{ position: 'absolute', top: 6, left: 10, fontFamily: "'Georgia', serif", fontSize: 80, lineHeight: 1, color: accent, opacity: 0.12, userSelect: 'none', pointerEvents: 'none' }}>
-                    &ldquo;
-                  </div>
-
-                  {/* Quote text */}
-                  <div style={{ fontFamily: "'Caveat', cursive", fontSize: 22, lineHeight: 1.5, color: '#3a342d', paddingTop: 18, position: 'relative', zIndex: 1 }}>
-                    {q.text}
-                  </div>
-
-                  {/* Attached Immich media */}
-                  {q.immichAssetId && <ImmichMedia assetId={q.immichAssetId} />}
-
-                  {/* Author */}
-                  <div style={{ fontFamily: "'Spectral', serif", fontStyle: 'italic', fontSize: 13.5, color: '#9a8e79', marginTop: 12, paddingTop: 10, borderTop: '1px dashed #e2dac9' }}>
-                    — {q.author}
-                  </div>
-
-                  {/* Replies */}
-                  <ReplyPanel quoteId={q.id} initialReplies={q.replies ?? []} accent={accent} />
-
-                  {/* Bubble tail */}
-                  <div style={{ position: 'absolute', bottom: -13, left: 30, width: 0, height: 0, borderLeft: '13px solid transparent', borderRight: '7px solid transparent', borderTop: `14px solid ${bg}`, filter: 'drop-shadow(0 3px 3px rgba(50,35,20,.08))' }} />
-
-                  {/* Admin remove */}
-                  {admin && (
-                    <button
-                      onClick={() => handleRemove(q.id)}
-                      title="remove"
-                      style={{ position: 'absolute', top: 8, right: 8, width: 26, height: 26, borderRadius: '50%', background: '#b23b2e', color: '#fff', border: 'none', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3 }}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function QuotesView({ admin, accent }: Props) {
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [lightbox, setLightbox] = useState<{ assetId: string; assetType: string } | null>(null);
+
+  const quoteRef = useRef<HTMLTextAreaElement>(null);
+  const contextRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    fetch('/api/quotes')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: Quote[]) => { setQuotes(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const handleSubmit = async () => {
+    const text = quoteRef.current?.value.trim();
+    if (!text || submitting) return;
+    setSubmitting(true); setError('');
+
+    let immichAssetId: string | null = null;
+    if (attachFile) {
+      setUploading(true);
+      const fd = new FormData(); fd.append('file', attachFile);
+      const upRes = await fetch('/api/immich/upload', { method: 'POST', body: fd });
+      setUploading(false);
+      if (upRes.ok) {
+        const upData = await upRes.json() as { assetId?: string };
+        immichAssetId = upData.assetId ?? null;
+      } else {
+        const upErr = await upRes.json().catch(() => ({})) as { error?: string };
+        setError(upErr.error ?? 'Attachment upload failed.');
+        setSubmitting(false); return;
+      }
+    }
+
+    const context = contextRef.current?.value.trim() ?? '';
+    const immichAssetType = attachFile ? (attachFile.type.startsWith('video/') ? 'video' : 'image') : '';
+    const res = await fetch('/api/quotes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, context, immichAssetId, immichAssetType }),
+    });
+    if (res.ok) {
+      const quote: Quote = await res.json();
+      setQuotes(prev => [quote, ...prev]);
+      if (quoteRef.current) quoteRef.current.value = '';
+      if (contextRef.current) contextRef.current.value = '';
+      setAttachFile(null);
+      if (fileRef.current) fileRef.current.value = '';
+    } else {
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      setError(data.error ?? 'Could not add quote.');
+    }
+    setSubmitting(false);
+  };
+
+  const removeQuote = async (id: string) => {
+    await fetch(`/api/quotes/${id}`, { method: 'DELETE' });
+    setQuotes(prev => prev.filter(q => q.id !== id));
+  };
+
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '40px 20px 70px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <h1 style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(28px,4vw,40px)', color: '#3a342d', margin: '0 0 10px' }}>quotes by Cali</h1>
+        <p style={{ fontFamily: "'Spectral', serif", fontStyle: 'italic', fontSize: 15, color: '#6f665a', margin: 0 }}>
+          the things she said that we&apos;ll never forget. add one you remember.
+        </p>
+      </div>
+
+      {/* Compose */}
+      <div style={{ background: '#fffdf8', borderRadius: 16, boxShadow: '0 5px 18px rgba(60,40,20,.09)', border: '1px solid #ece1cb', padding: '22px 20px', marginBottom: 36, maxWidth: 680, marginInline: 'auto' }}>
+        <textarea ref={quoteRef} placeholder='"something she always said..."' rows={3}
+          style={{ display: 'block', width: '100%', fontFamily: "'Caveat', cursive", fontSize: 20, color: '#3a342d', border: '1px solid #e2d6bf', borderRadius: 10, background: '#fdf9f3', padding: '10px 12px', outline: 'none', resize: 'vertical', marginBottom: 14, boxSizing: 'border-box', lineHeight: 1.5 }}
+        />
+        <input ref={contextRef} placeholder="when / who remembers it (optional)"
+          style={{ display: 'block', width: '100%', fontFamily: "'Spectral', serif", fontSize: 14, color: '#52483c', border: 'none', borderBottom: '1px solid #e2d6bf', background: 'transparent', padding: '6px 4px', outline: 'none', marginBottom: 16, boxSizing: 'border-box' }}
+        />
+
+        {/* Attach */}
+        <button onClick={() => fileRef.current?.click()} style={{ fontFamily: "'Spectral', serif", fontSize: 14, background: '#f0ebe0', color: '#52483c', border: '1px solid #d8cdb9', borderRadius: 20, padding: '8px 16px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          &#128206;
+          {attachFile ? (
+            <>
+              {attachFile.name.slice(0, 26)}{attachFile.name.length > 26 ? '...' : ''}
+              <span onClick={e => { e.stopPropagation(); setAttachFile(null); if (fileRef.current) fileRef.current.value = ''; }} style={{ color: '#b23b2e', marginLeft: 4 }}>&#10005;</span>
+            </>
+          ) : 'attach a photo or video'}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={e => setAttachFile(e.target.files?.[0] ?? null)} />
+
+        <div style={{ fontFamily: "'Spectral', serif", fontSize: 12, color: '#a8997f', fontStyle: 'italic', marginBottom: 16 }}>
+          attachments are saved to her photos album. tap the chip on a quote to view it.
+        </div>
+
+        {error && <div style={{ fontFamily: "'Spectral', serif", fontSize: 13, color: '#b23b2e', fontStyle: 'italic', marginBottom: 12 }}>{error}</div>}
+
+        <button onClick={handleSubmit} disabled={submitting || uploading}
+          style={{ fontFamily: "'Caveat', cursive", fontSize: 20, background: submitting || uploading ? '#d8cdb9' : accent, color: '#fff', border: 'none', padding: '10px 28px', borderRadius: 24, cursor: submitting || uploading ? 'not-allowed' : 'pointer', boxShadow: submitting || uploading ? 'none' : '0 3px 10px rgba(194,114,79,.3)' }}>
+          {uploading ? 'uploading...' : submitting ? 'adding...' : 'add this quote'}
+        </button>
+      </div>
+
+      {/* Quotes grid */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#9a8e79', fontFamily: "'Spectral', serif" }}>loading...</div>
+      ) : quotes.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#9a8e79', fontFamily: "'Spectral', serif", fontStyle: 'italic' }}>no quotes yet — add one you remember</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 18 }}>
+          {quotes.map((quote, i) => (
+            <QuoteCard key={quote.id} quote={quote} bg={BUBBLE_COLORS[i % BUBBLE_COLORS.length]} rot={ROTATIONS[i % ROTATIONS.length]} admin={admin} onRemove={() => removeQuote(quote.id)} albumLink={ALBUM_LINK} onOpenMedia={(id, type) => setLightbox({ assetId: id, assetType: type })} />
+          ))}
+        </div>
+      )}
+
+      {lightbox && <MediaLightbox assetId={lightbox.assetId} assetType={lightbox.assetType} albumLink={ALBUM_LINK} onClose={() => setLightbox(null)} />}
+    </div>
+  );
+}
+
+// ── Quote card ────────────────────────────────────────────────────────────────
+function QuoteCard({ quote, bg, rot, admin, onRemove, albumLink, onOpenMedia }: {
+  quote: Quote; bg: string; rot: number; admin: boolean; onRemove: () => void; albumLink: string; onOpenMedia: (id: string, type: string) => void;
+}) {
+  const isVideo = quote.immichAssetType === 'video';
+
+  return (
+    <div style={{ background: bg, border: '1px solid #ece1cb', borderRadius: 14, padding: '20px 18px 16px', boxShadow: '0 4px 14px rgba(60,40,20,.08)', position: 'relative' }}>
+      {admin && (
+        <button onClick={onRemove} style={{ position: 'absolute', top: 8, right: 8, background: 'transparent', border: 'none', color: '#b23b2e', cursor: 'pointer', fontSize: 15, padding: '2px 6px' }}>&#10005;</button>
+      )}
+      <div style={{ fontFamily: "'Spectral', serif", fontSize: 52, color: '#d8cdb9', lineHeight: 0.6, marginBottom: 10, userSelect: 'none' }}>&ldquo;</div>
+      <div style={{ fontFamily: "'Caveat', cursive", fontSize: 22, color: '#3a342d', lineHeight: 1.4, marginBottom: 10 }}>{quote.text}</div>
+      {quote.context && <div style={{ fontFamily: "'Spectral', serif", fontStyle: 'italic', fontSize: 13, color: '#9a8e79', marginBottom: 10 }}>{quote.context}</div>}
+
+      {quote.immichAssetId && (
+        <button onClick={() => onOpenMedia(quote.immichAssetId!, quote.immichAssetType)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f0ebe0', border: '1px solid #d8cdb9', borderRadius: 20, padding: '5px 12px 5px 5px', cursor: 'pointer', marginTop: 4 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, overflow: 'hidden', background: '#ddd5c8', position: 'relative', flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/api/immich/thumbnail?assetId=${quote.immichAssetId}`} alt="attachment"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+            {isVideo && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.45)', color: '#fff', fontSize: 12 }}>&#9654;</div>}
+          </div>
+          <span style={{ fontFamily: "'Spectral', serif", fontSize: 13, color: '#52483c', fontStyle: 'italic' }}>
+            {isVideo ? 'watch the moment' : 'view memory'}
+          </span>
+        </button>
+      )}
+    </div>
   );
 }

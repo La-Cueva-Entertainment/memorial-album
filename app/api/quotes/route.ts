@@ -21,11 +21,13 @@ export async function POST(req: NextRequest) {
   if (!rateLimit(getClientIp(req), 10, 60_000)) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
-  const body = await req.json() as { text?: string; author?: string; immichAssetId?: string };
+  const body = await req.json() as { text?: string; author?: string; context?: string; immichAssetId?: string; immichAssetType?: string };
   const text = body.text?.trim();
   if (!text) return NextResponse.json({ error: 'text is required' }, { status: 400 });
-  const author = body.author?.trim() || 'Cali';
+  const author = body.author?.trim() || 'anonymous';
+  const context = body.context?.trim() ?? '';
   const immichAssetId = body.immichAssetId?.trim() || null;
-  const quote = await db.quote.create({ data: { text, author, immichAssetId } });
+  const immichAssetType = body.immichAssetType?.trim() || '';
+  const quote = await db.quote.create({ data: { text, author, context, immichAssetId, immichAssetType }, include: { replies: true } });
   return NextResponse.json(quote, { status: 201 });
 }

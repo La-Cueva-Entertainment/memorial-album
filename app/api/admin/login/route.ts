@@ -1,21 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { sessionOptions } from '@/lib/session';
 import type { SessionData } from '@/lib/session';
 
-/** POST /api/admin/login */
-export async function POST(req: NextRequest) {
-  const body = await req.json() as { password?: string };
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  if (!adminPassword || !body.password || body.password !== adminPassword) {
-    return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
-  }
-
-  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-  session.admin = true;
-  await session.save();
-
-  return NextResponse.json({ admin: true });
+/** POST /api/admin/login — disabled, Google OAuth only */
+export async function POST() {
+  return NextResponse.json({ error: 'Password login disabled' }, { status: 403 });
 }
+
+/** DELETE /api/admin/login — logout */
+export async function DELETE() {
+  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+  session.admin = false;
+  await session.save();
+  return NextResponse.json({ ok: true });
+}
+

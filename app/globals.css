@@ -17,6 +17,11 @@ html, body {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 11px; height: 11px; }
 ::-webkit-scrollbar-thumb {
@@ -30,3 +35,41 @@ html, body {
 
 /* Prevent user-select on the crop frame drag area */
 .crop-frame { user-select: none; }
+
+/* v2 animations */
+@keyframes fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes xfade {
+  0%, 100% { opacity: 0; }
+  15%, 85%  { opacity: 1; }
+}
+
+@keyframes drawer {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalin {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Desktop-only rotating polaroids */
+.desktop-polaroids {
+  display: none;
+}
+@media (min-width: 880px) {
+  .desktop-polaroids {
+    display: flex;
+  }
+}
+
+/* Tap-to-call links on resources */
+a.resource-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}

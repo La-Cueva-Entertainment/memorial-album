@@ -58,7 +58,9 @@ export interface Quote {
   id: string;
   text: string;
   author: string;
+  context: string;
   immichAssetId: string | null;
+  immichAssetType: string;
   ts: string;
   replies: QuoteReply[];
 }
@@ -78,4 +80,13 @@ export interface OceanSprayPost {
   imgPath: string | null;
   pinned: boolean;
   ts: string;
+}
+
+export interface Album {
+  id: string;
+  name: string;
+  immichAlbumId: string | null;
+  shareLink: string | null;
+  coverImmichAssetId: string | null;
+  createdAt: string;
 }

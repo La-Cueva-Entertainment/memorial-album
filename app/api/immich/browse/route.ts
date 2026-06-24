@@ -72,7 +72,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ configured: false, assets: [], albums: [] });
   }
 
-  const filterAlbumId = new URL(req.url).searchParams.get('albumId') ?? undefined;
+  const filterAlbumId = new URL(req.url).searchParams.get('albumId')
+    ?? process.env.IMMICH_ALBUM_ID
+    ?? undefined;
 
   // Fetch assets (optionally filtered to album) and album list in parallel
   const [assetsResult, albumsResult] = await Promise.allSettled([

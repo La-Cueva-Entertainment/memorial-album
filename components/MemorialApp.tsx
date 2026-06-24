@@ -1,322 +1,138 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { Item, GuestbookNote, Quote } from '@/types';
-import TopNav from './TopNav';
-import Banner from './Banner';
-import BoardView from './BoardView';
-import GalleryView from './GalleryView';
-import GuestbookView from './GuestbookView';
+import TopNav, { type View } from './TopNav';
+import HomeView from './HomeView';
+import AlbumsView from './AlbumsView';
+import MessagesView from './MessagesView';
 import QuotesView from './QuotesView';
-import BioView from './BioView';
-import MentalHealthView from './MentalHealthView';
 import OceanSprayView from './OceanSprayView';
-import AddMemoryModal from './AddMemoryModal';
-import MassUploadModal from './MassUploadModal';
-import LightboxModal from './LightboxModal';
-import MusicPlayer from './SpotifyPlayer';
+import ResourcesView from './ResourcesView';
 import AdminToggle from './AdminToggle';
-import ProfilePill from './ProfilePill';
 
-export type View = 'board' | 'gallery' | 'guestbook' | 'quotes' | 'bio' | 'ocean-spray' | 'mental-health';
-export type ModalType = null | 'add' | 'mass' | 'view';
+const ACCENT = process.env.NEXT_PUBLIC_SITE_ACCENT ?? '#c2724f';
 
-const ACCENT = process.env.NEXT_PUBLIC_SITE_ACCENT ?? '#b5704f';
-const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME ?? 'My Loved One';
-const SITE_DATES = process.env.NEXT_PUBLIC_SITE_DATES ?? '';
+const VALID_VIEWS: View[] = ['home', 'albums', 'messages', 'quotes', 'event', 'resources'];
+
+function viewFromHash(): View {
+  if (typeof window === 'undefined') return 'home';
+  const hash = window.location.hash.replace('#', '') as View;
+  return VALID_VIEWS.includes(hash) ? hash : 'home';
+}
 
 export default function MemorialApp() {
-  // ── Views & modals ────────────────────────────────────────────────────────
-  const [view, setView] = useState<View>('board');
-  const [modal, setModal] = useState<ModalType>(null);
-  const [viewingId, setViewingId] = useState<string | null>(null);
-
-  // ── Data ──────────────────────────────────────────────────────────────────
-  const [items, setItems] = useState<Item[]>([]);
-  const [notes, setNotes] = useState<GuestbookNote[]>([]);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
-
-  // ── Session user (non-admin registered users) ─────────────────────────────
-  const [sessionUser, setSessionUser] = useState<{ id: string; name: string; role: string } | null>(null);
-
-  // ── Admin ─────────────────────────────────────────────────────────────────
+  const [mounted, setMounted] = useState(false);
+  const [view, setView] = useState<View>('home');
   const [admin, setAdmin] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
-  // ── Fetch initial data ────────────────────────────────────────────────────
+  // All client-side init runs after first paint — server and client initial HTML always match
   useEffect(() => {
-    const safe = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
-      p.catch(() => fallback);
+    setMounted(true);
+    setView(viewFromHash());
 
-    Promise.all([
-      safe(fetch('/api/items').then(r => r.ok ? r.json() : []), []),
-      safe(fetch('/api/notes').then(r => r.ok ? r.json() : []), []),
-      safe(fetch('/api/admin/me').then(r => r.ok ? r.json() : {}), {}),
-      safe(fetch('/api/users/me').then(r => r.ok ? r.json() : {}), {}),
-      safe(fetch('/api/quotes').then(r => r.ok ? r.json() : []), []),
-    ]).then(([itemsData, notesData, adminData, userData, quotesData]) => {
-      setItems(Array.isArray(itemsData) ? itemsData : []);
-      setNotes(Array.isArray(notesData) ? notesData : []);
-      setAdmin((adminData as { admin?: boolean }).admin ?? false);
-      const u = (userData as { user?: { id: string; name: string; role?: string } }).user;
-      if (u) setSessionUser({ id: u.id, name: u.name, role: u.role ?? 'contributor' });
-      setQuotes(Array.isArray(quotesData) ? quotesData : []);
-    }).catch(console.error);
-  }, []);
+    fetch('/api/admin/me')
+      .then(r => r.ok ? r.json() : {})
+      .then((data: { admin?: boolean }) => setAdmin(data.admin ?? false))
+      .catch(() => {});
 
-  // ── All items sorted for slideshow ──────────────────────────────────────
-  const allSlides = items.slice().sort(
-    (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()
-  );
-
-  const isSuperContributor = admin || (sessionUser?.role === 'super_contributor');
-
-  // ── Navigation ────────────────────────────────────────────────────────────
-  const goTo = useCallback((v: View) => {
-    setView(v);
-    setModal(null);
-    window.scrollTo(0, 0);
-  }, []);
-
-  const openAdd = useCallback(() => setModal('add'), []);
-  const openMass = useCallback(() => setModal('mass'), []);
-  const closeModal = useCallback(() => { setModal(null); setViewingId(null); }, []);
-
-  const openLightbox = useCallback((id: string) => {
-    setViewingId(id);
-    setModal('view');
-  }, []);
-
-  // ── Items mutations ───────────────────────────────────────────────────────
-  const addItem = useCallback((item: Item) => {
-    setItems(prev => [item, ...prev]);
-  }, []);
-
-  const addItems = useCallback((newItems: Item[]) => {
-    setItems(prev => [...newItems, ...prev]);
-  }, []);
-
-  const removeItem = useCallback(async (id: string) => {
-    await fetch(`/api/items/${id}`, { method: 'DELETE' });
-    setItems(prev => prev.filter(i => i.id !== id));
-    if (viewingId === id) closeModal();
-  }, [viewingId, closeModal]);
-
-  const tiltItem = useCallback(async (id: string, delta: number) => {
-    const item = items.find(i => i.id === id);
-    if (!item) return;
-    // Use current angle (or compute seeded default) then apply delta
-    const { hashFloat } = await import('@/lib/seed');
-    const cur = typeof item.angle === 'number'
-      ? item.angle
-      : hashFloat(id, 'rot') * 16 - 8;
-    const newAngle = Math.max(-22, Math.min(22, cur + delta));
-    await fetch(`/api/items/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ angle: newAngle }),
-    });
-    setItems(prev => prev.map(i => i.id === id ? { ...i, angle: newAngle } : i));
-  }, [items]);
-
-  const moveItem = useCallback(async (id: string, dir: -1 | 1) => {
-    const boardItems = items.filter(i => i.source === 'board');
-    const pos = boardItems.findIndex(i => i.id === id);
-    const tgtPos = pos + dir;
-    if (pos < 0 || tgtPos < 0 || tgtPos >= boardItems.length) return;
-    const swapId = boardItems[tgtPos].id;
-    await fetch(`/api/items/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ swapWithId: swapId }),
-    });
-    // Swap in local state too
-    setItems(prev => {
-      const next = [...prev];
-      const idxA = next.findIndex(i => i.id === id);
-      const idxB = next.findIndex(i => i.id === swapId);
-      [next[idxA], next[idxB]] = [next[idxB], next[idxA]];
-      return next;
-    });
-  }, [items]);
-
-  const reorderBoard = useCallback(async (ids: string[]) => {
-    await fetch('/api/items', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids }),
-    });
-    // Rebuild sortOrder locally: first id gets highest value
-    setItems(prev => {
-      const total = ids.length;
-      return prev.map(item => {
-        const idx = ids.indexOf(item.id);
-        return idx === -1 ? item : { ...item, sortOrder: total - idx };
-      });
-    });
-  }, []);
-
-  const pinItem = useCallback(async (id: string) => {
-    const res = await fetch(`/api/items/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source: 'board' }),
-    });
-    if (res.ok) {
-      const updated: Item = await res.json();
-      setItems(prev => prev.map(i => i.id === id ? updated : i));
+    // Handle Google OAuth result redirected back with ?auth=
+    const params = new URLSearchParams(window.location.search);
+    const authResult = params.get('auth');
+    if (authResult === 'ok') {
+      setAdmin(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (authResult === 'error' || authResult === 'denied') {
+      setLoginError(authResult === 'denied' ? 'That Google account is not authorised.' : 'Google sign-in failed. Try again.');
+      setLoginOpen(true);
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
-  const addComment = useCallback((itemId: string, comment: { id: string; itemId: string; text: string; author: string; ts: string }) => {
-    setItems(prev => prev.map(i =>
-      i.id === itemId ? { ...i, comments: [...i.comments, comment] } : i
-    ));
+  const goTo = useCallback((v: View) => {
+    setView(v);
+    window.location.hash = v === 'home' ? '' : v;
+    window.scrollTo(0, 0);
   }, []);
 
-  const updateItem = useCallback((updated: Item) => {
-    setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
-  }, []);
+  const handleToggle = useCallback(() => {
+    if (admin) {
+      fetch('/api/admin/login', { method: 'DELETE' }).catch(() => {});
+      setAdmin(false);
+    } else {
+      setLoginOpen(true);
+      setLoginError('');
+    }
+  }, [admin]);
 
-  // ── Notes mutations ───────────────────────────────────────────────────────
-  const addNote = useCallback((note: GuestbookNote) => {
-    setNotes(prev => [note, ...prev]);
-  }, []);
+  const isEvent = view === 'event';
 
-  const removeNote = useCallback(async (id: string) => {
-    await fetch(`/api/notes/${id}`, { method: 'DELETE' });
-    setNotes(prev => prev.filter(n => n.id !== id));
-  }, []);
-
-  // ── Quotes mutations ──────────────────────────────────────────────────────
-  const addQuote = useCallback((quote: Quote) => {
-    setQuotes(prev => [quote, ...prev]);
-  }, []);
-
-  const removeQuote = useCallback((id: string) => {
-    setQuotes(prev => prev.filter(q => q.id !== id));
-  }, []);
-
-  // ── Admin ─────────────────────────────────────────────────────────────────
-  const toggleAdmin = useCallback(async () => {
-    // Only admins see this button — clicking it exits admin mode
-    await fetch('/api/admin/logout', { method: 'POST' });
-    setAdmin(false);
-  }, []);
-
-  const viewingItem = items.find(i => i.id === viewingId) ?? null;
-  const boardItems = items.filter(i => i.source === 'board');
-  const galleryItems = items; // photo box shows everything
+  // Before mount: render a static shell that matches server output exactly
+  if (!mounted) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f3ead9' }}>
+        <TopNav view="home" onNav={() => {}} accent={ACCENT} />
+      </div>
+    );
+  }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        fontFamily: "'Spectral', Georgia, serif",
-        color: '#3a342d',
-        background: '#cdb38a',
-        backgroundImage:
-          'radial-gradient(circle at 18% 22%, rgba(60,40,20,.07) 1.5px, transparent 1.6px),' +
-          'radial-gradient(circle at 62% 68%, rgba(60,40,20,.06) 1.5px, transparent 1.6px)',
-        backgroundSize: '13px 13px, 17px 17px',
-        paddingBottom: 168, // 152px Spotify bar + 16px breathing room
-      }}
-    >
-      <TopNav
-        name={SITE_NAME}
-        dates={SITE_DATES}
-        accent={ACCENT}
-        view={view}
-        onNav={goTo}
-      />
+    <div style={{
+      minHeight: '100vh',
+      background: isEvent ? '#e8a050' : '#f3ead9',
+      backgroundImage: isEvent ? 'none' :
+        'radial-gradient(circle at 22% 32%,rgba(120,90,50,.04) 1.5px,transparent 1.6px),' +
+        'radial-gradient(circle at 68% 70%,rgba(120,90,50,.03) 1.5px,transparent 1.6px)',
+      backgroundSize: isEvent ? 'auto' : '15px 15px,19px 19px',
+    }}>
+      <TopNav view={view} onNav={goTo} accent={ACCENT} />
 
-      {view === 'board' && (
-        <BoardView
-          name={SITE_NAME}
-          dates={SITE_DATES}
-          items={boardItems}
-          admin={admin}
-          accent={ACCENT}
-          onOpenAdd={openAdd}
-          onOpenLightbox={openLightbox}
-          onRemove={removeItem}
-          onTilt={tiltItem}
-          onMove={moveItem}
-          onReorder={reorderBoard}
-        />
-      )}
-      {view === 'gallery' && (
-        <GalleryView
-          items={galleryItems}
-          slideshowItems={allSlides}
-          admin={admin}
-          accent={ACCENT}
-          sessionUser={sessionUser}
-          onOpenMass={openMass}
-          onOpenLightbox={openLightbox}
-          onRemove={removeItem}
-          onPin={pinItem}
-        />
-      )}
-      {view === 'guestbook' && (
-        <GuestbookView
-          notes={notes}
-          admin={admin}
-          accent={ACCENT}
-          onAddNote={addNote}
-          onRemoveNote={removeNote}
-        />
-      )}
-      {view === 'quotes' && (
-        <QuotesView
-          quotes={quotes}
-          admin={admin}
-          accent={ACCENT}
-          onAddQuote={addQuote}
-          onRemoveQuote={removeQuote}
-        />
-      )}
-      {view === 'bio' && <BioView admin={admin} isSuperContributor={isSuperContributor} accent={ACCENT} />}
-      {view === 'ocean-spray' && <OceanSprayView admin={admin} accent={ACCENT} />}
-      {view === 'mental-health' && <MentalHealthView />}
+      <main>
+        {view === 'home'      && <HomeView      admin={admin} accent={ACCENT} onNav={goTo} />}
+        {view === 'albums'    && <AlbumsView    admin={admin} accent={ACCENT} />}
+        {view === 'messages'  && <MessagesView  admin={admin} accent={ACCENT} />}
+        {view === 'quotes'    && <QuotesView    admin={admin} accent={ACCENT} />}
+        {view === 'event'     && <OceanSprayView admin={admin} accent={ACCENT} />}
+        {view === 'resources' && <ResourcesView />}
+      </main>
 
-      {modal === 'add' && (
-        <AddMemoryModal
-          accent={ACCENT}
-          onClose={closeModal}
-          onAdded={item => { addItem(item); closeModal(); setView('board'); }}
-        />
-      )}
-      {modal === 'mass' && (
-        <MassUploadModal
-          accent={ACCENT}
-          onClose={closeModal}
-          onAdded={addItems}
-          sessionUser={sessionUser}
-        />
-      )}
-      {modal === 'view' && viewingItem && (
-        <LightboxModal
-          item={viewingItem}
-          accent={ACCENT}
-          admin={admin}
-          sessionUser={sessionUser}
-          onClose={closeModal}
-          onCommentAdded={addComment}
-          onItemUpdated={updateItem}
-        />
-      )}
+      <AdminToggle admin={admin} accent={ACCENT} onToggle={handleToggle} />
 
-      <MusicPlayer admin={admin} />
+      {/* Login modal â€” Google only */}
+      {loginOpen && (
+        <div
+          onClick={() => setLoginOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(20,14,8,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#f7f2e9', borderRadius: 18, padding: '28px 26px', maxWidth: 340, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.35)' }}
+          >
+            <h2 style={{ fontFamily: "'Caveat', cursive", fontSize: 28, color: '#3a342d', margin: '0 0 6px' }}>admin sign in</h2>
+            <p style={{ fontFamily: "'Spectral', serif", fontSize: 13, color: '#9a8e79', fontStyle: 'italic', margin: '0 0 24px' }}>
+              site management only
+            </p>
 
-      <AdminToggle admin={admin} onToggle={toggleAdmin} accent={ACCENT} />
+            <a
+              href="/api/admin/google"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                background: '#fff', border: '1.5px solid #d8cdb9', borderRadius: 12,
+                padding: '12px 18px', textDecoration: 'none', color: '#3a342d',
+                fontFamily: "'Spectral', serif", fontSize: 15, fontWeight: 500,
+                boxShadow: '0 2px 6px rgba(0,0,0,.07)',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+              continue with Google
+            </a>
 
-      {/* Profile edit pill for logged-in contributors */}
-      {sessionUser && !admin && (
-        <ProfilePill
-          user={sessionUser}
-          accent={ACCENT}
-          onUpdated={name => setSessionUser(u => u ? { ...u, name } : u)}
-        />
+            {loginError && (
+              <p style={{ fontFamily: "'Spectral', serif", fontSize: 13, color: '#b23b2e', margin: '16px 0 0', fontStyle: 'italic', textAlign: 'center' }}>{loginError}</p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

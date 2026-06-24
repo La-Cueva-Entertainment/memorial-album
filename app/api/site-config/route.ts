@@ -18,7 +18,11 @@ export async function PATCH(req: NextRequest) {
   if (!session.admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json() as Record<string, string>;
-  const allowedKeys = ['bio_hero_immich_id', 'bio_hero_img_path', 'bio_location'];
+  const allowedKeys = [
+    'bio_hero_immich_id', 'bio_hero_img_path', 'bio_location',
+    'event_date', 'event_time', 'event_where', 'event_venue',
+    'event_dress', 'event_dress_note', 'event_bring', 'event_notes',
+  ];
 
   for (const [key, value] of Object.entries(body)) {
     if (!allowedKeys.includes(key)) continue;

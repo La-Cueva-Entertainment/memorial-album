@@ -69,12 +69,14 @@ model Track {
 }
 
 model Quote {
-  id            String       @id @default(cuid())
-  text          String
-  author        String       @default("Cali")
-  immichAssetId String?
-  ts            DateTime     @default(now())
-  replies       QuoteReply[]
+  id              String       @id @default(cuid())
+  text            String
+  author          String       @default("anonymous")
+  context         String       @default("")
+  immichAssetId   String?
+  immichAssetType String       @default("")
+  ts              DateTime     @default(now())
+  replies         QuoteReply[]
 }
 
 model QuoteReply {
@@ -107,4 +109,13 @@ model OceanSprayPost {
   imgPath String?
   pinned  Boolean  @default(false)
   ts      DateTime @default(now())
+}
+
+model Album {
+  id                 String   @id @default(cuid())
+  name               String
+  immichAlbumId      String?
+  shareLink          String?
+  coverImmichAssetId String?
+  createdAt          DateTime @default(now())
 }

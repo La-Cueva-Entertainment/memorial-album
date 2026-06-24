@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;}
+  *{box-sizing:border-box;}
+  @keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes xfade{from{opacity:0;}to{opacity:1;}}
+  @keyframes drawer{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+  .desk-nav{display:none;}
+  .burger{display:inline-flex;}
+  .hero-side{display:none;}
+  @media(min-width:880px){
+    .desk-nav{display:flex;}
+    .burger{display:none;}
+    .hero-side{display:flex;}
+  }
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:rgba(120,90,60,.28);border-radius:6px;}
+</style>
+</helmet>
+
+<div style="min-height:100vh;font-family:'Spectral',Georgia,serif;color:#3a342d;background:#f3ead9;background-image:radial-gradient(circle at 20% 18%, rgba(120,85,45,.045) 1.5px, transparent 1.6px),radial-gradient(circle at 64% 72%, rgba(120,85,45,.04) 1.5px, transparent 1.6px);background-size:15px 15px, 19px 19px;">
+
+  <!-- ===== HEADER ===== -->
+  <div style="position:sticky;top:0;z-index:40;background:rgba(246,239,227,.94);backdrop-filter:blur(8px);border-bottom:1px solid #e2d6bf;">
+    <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;">
+      <button onClick="{{ goHome }}" style="display:flex;align-items:baseline;gap:9px;background:none;border:none;cursor:pointer;padding:0;text-align:left;">
+        <span style="font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:#3a342d;line-height:1;">{{ name }}</span>
+        <span style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#a8997f;">remembered</span>
+      </button>
+
+      <!-- desktop inline nav -->
+      <div class="desk-nav" style="align-items:center;gap:2px;">
+        <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="6">
+          <button onClick="{{ nav.go }}" style="font-family:'Spectral',serif;font-size:14.5px;background:{{ nav.bg }};color:{{ nav.fg }};border:none;padding:7px 13px;border-radius:20px;cursor:pointer;white-space:nowrap;">{{ nav.short }}</button>
+        </sc-for>
+      </div>
+
+      <!-- mobile burger -->
+      <button class="burger" onClick="{{ toggleMenu }}" aria-label="menu" style="align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;background:{{ accent }};border:none;cursor:pointer;flex-direction:column;gap:4px;">
+        <span style="width:18px;height:2px;background:#fff;border-radius:2px;"></span>
+        <span style="width:18px;height:2px;background:#fff;border-radius:2px;"></span>
+        <span style="width:18px;height:2px;background:#fff;border-radius:2px;"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== MOBILE DRAWER ===== -->
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:60;background:rgba(40,28,16,.45);backdrop-filter:blur(2px);">
+      <div onClick="{{ stop }}" style="position:absolute;top:0;left:0;right:0;background:#f6efe3;border-bottom:1px solid #e2d6bf;border-radius:0 0 22px 22px;padding:16px 16px 22px;box-shadow:0 18px 40px rgba(40,28,16,.28);animation:drawer .22s ease;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:#3a342d;">{{ name }}</span>
+          <button onClick="{{ closeMenu }}" style="width:36px;height:36px;border-radius:50%;background:#ece2cf;border:none;font-size:18px;color:#6f665a;cursor:pointer;line-height:1;">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="6">
+            <button onClick="{{ nav.go }}" style="display:flex;align-items:center;gap:12px;font-family:'Caveat',cursive;font-size:24px;background:{{ nav.drawerBg }};color:{{ nav.drawerFg }};border:none;padding:13px 16px;border-radius:14px;cursor:pointer;text-align:left;">
+              <span style="font-size:19px;width:24px;text-align:center;">{{ nav.icon }}</span>{{ nav.long }}
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============================================================ HOME -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div style="max-width:1080px;margin:0 auto;padding:0 18px 70px;">
+
+    <!-- hero -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:34px;padding:30px 0 8px;">
+      <!-- left rotators (desktop) -->
+      <div class="hero-side" style="flex-direction:column;gap:22px;flex:none;">{{ heroLeft }}</div>
+
+      <!-- center portrait -->
+      <div style="display:flex;flex-direction:column;align-items:center;max-width:340px;width:100%;">
+        <div style="background:#fffdf8;padding:13px 13px 0;border-radius:5px;box-shadow:0 14px 32px rgba(60,40,20,.24);transform:rotate(-1.5deg);position:relative;width:100%;">
+          <span style="position:absolute;top:-12px;left:50%;margin-left:-12px;width:13px;height:19px;z-index:3;">
+            <span style="position:absolute;top:0;left:0;width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.92), transparent 52%), #d98aa6;box-shadow:0 2px 4px rgba(60,40,20,.4);"></span>
+            <span style="position:absolute;left:50%;top:8px;margin-left:-1px;width:2px;height:11px;background:linear-gradient(#d6d1c6,#8d8678);"></span>
+          </span>
+          <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="cali-portrait" shape="rect" placeholder="drop Cali's photo" hint-size="100%,300px" style="display:block;width:100%;height:auto;aspect-ratio:4/5;background:#e7ddc9;"></x-import>
+          <div style="font-family:'Caveat',cursive;font-size:26px;text-align:center;color:#3a342d;padding:9px 4px 4px;line-height:1;">our Cali</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:9px;padding:0 4px 12px;color:#b89a6a;">
+            <span style="width:22px;height:1px;background:#d8c39a;"></span>
+            <span style="font-size:12px;font-style:italic;color:#9a8e79;">{{ dates }}</span>
+            <span style="width:22px;height:1px;background:#d8c39a;"></span>
+          </div>
+        </div>
+        <div style="font-family:'Caveat',cursive;font-size:30px;color:#3a342d;text-align:center;margin-top:18px;line-height:1.15;">the funny one · the selfless one<br/>forever ours</div>
+        <div style="margin-top:12px;font-size:19px;letter-spacing:.22em;opacity:.6;display:flex;gap:12px;align-items:center;">
+          <img src="uploads/pasted-1781680678465-0.png" alt="mahjong tile" style="height:24px;width:auto;display:block;"/>
+          <span>🧋</span><span>🐈</span>
+        </div>
+      </div>
+
+      <!-- right rotators (desktop) -->
+      <div class="hero-side" style="flex-direction:column;gap:22px;flex:none;">{{ heroRight }}</div>
+    </div>
+
+    <!-- mobile rotating strip -->
+    <div class="burger" style="justify-content:center;gap:14px;margin:22px 0 4px;">{{ heroMobile }}</div>
+
+    <!-- about -->
+    <div style="max-width:660px;margin:40px auto 0;text-align:center;">
+      <div style="font-family:'Caveat',cursive;font-size:34px;font-weight:700;color:#3a342d;">about Cali</div>
+      <div style="width:54px;height:2px;background:#dcc9a3;margin:10px auto 22px;"></div>
+      <p style="font-size:17.5px;line-height:1.72;color:#52483c;margin:0 0 18px;text-wrap:pretty;">Cali was the funny one — the sister who could turn a boba run into an adventure and a mahjong table into a comedy show. She loved fiercely: her family, her friends, her cats, and the messy, sun-soaked city of Los Angeles she called home.</p>
+      <p style="font-size:17.5px;line-height:1.72;color:#52483c;margin:0 0 18px;text-wrap:pretty;">She had a nickname for everyone, a soft spot for good food and better company, and a way of making whoever she was with feel like the most important person in the room.</p>
+      <p style="font-size:17.5px;line-height:1.72;color:#52483c;margin:0;text-wrap:pretty;">She gave so much more than she ever asked for. This little place is for all of us — to keep her close, share the photos and the stories and the laughs, and look after each other the way she always looked after us.</p>
+    </div>
+
+    <!-- quick links -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;max-width:720px;margin:40px auto 0;">
+      <sc-for list="{{ homeLinks }}" as="ql" hint-placeholder-count="4">
+        <button onClick="{{ ql.go }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:#fffdf8;border:1px solid #ece1cb;border-radius:16px;padding:16px 18px;cursor:pointer;text-align:left;box-shadow:0 5px 14px rgba(60,40,20,.08);transition:transform .15s;" style-hover="transform:translateY(-2px);">
+          <span style="font-size:22px;">{{ ql.icon }}</span>
+          <span style="font-family:'Caveat',cursive;font-size:22px;color:#3a342d;line-height:1;">{{ ql.label }}</span>
+          <span style="font-size:13px;color:#9a8e79;">{{ ql.sub }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============================================================ GALLERY -->
+  <sc-if value="{{ isGallery }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1080px;margin:0 auto;padding:28px 18px 70px;">
+    <div style="text-align:center;margin-bottom:6px;">
+      <div style="font-family:'Caveat',cursive;font-size:34px;font-weight:700;color:#3a342d;">photo albums</div>
+      <div style="font-size:15.5px;color:#6f665a;max-width:540px;margin:8px auto 0;line-height:1.55;">tap an album to open it and add your own photos. don't have one for yours? just hit “add your photos.”</div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:20px 0 8px;">
+      <button onClick="{{ addToDefault }}" style="display:inline-flex;align-items:center;gap:9px;font-family:'Caveat',cursive;font-size:21px;background:{{ accent }};color:#fff;border:none;padding:10px 24px;border-radius:24px;cursor:pointer;box-shadow:0 5px 14px rgba(120,70,40,.26);">
+        <span style="font-size:18px;">⬆</span> add your photos
+      </button>
+      <button onClick="{{ openNewAlbum }}" style="display:inline-flex;align-items:center;gap:9px;font-family:'Caveat',cursive;font-size:21px;background:#fffdf8;color:#3a342d;border:1.5px solid #e2d6bf;padding:10px 22px;border-radius:24px;cursor:pointer;">
+        <span style="font-size:19px;line-height:1;">＋</span> create a new album
+      </button>
+    </div>
+    <div style="text-align:center;max-width:540px;margin:0 auto 24px;font-size:13.5px;color:#6f665a;line-height:1.5;">“Add your photos” opens our shared album so you can upload in bulk — no account needed. Or start your own album below.</div>
+
+    <sc-if value="{{ albumsEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:50px 20px;font-family:'Caveat',cursive;font-size:26px;color:#6f665a;">no albums yet — create the first one</div>
+    </sc-if>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;">
+      <sc-for list="{{ albums }}" as="al" hint-placeholder-count="0">
+        <div style="position:relative;">
+          <a href="{{ al.link }}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;background:#fffdf8;border-radius:14px;overflow:hidden;box-shadow:0 7px 18px rgba(60,40,20,.13);transition:transform .15s,box-shadow .15s;" style-hover="transform:translateY(-3px);box-shadow:0 12px 26px rgba(60,40,20,.2);">
+          <div style="aspect-ratio:4/3;position:relative;background:{{ al.cover }};display:flex;align-items:flex-end;">
+            {{ al.coverImg }}
+            <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(30,18,8,.55), transparent 58%);"></div>
+            <span style="position:absolute;top:10px;right:10px;font-size:11px;letter-spacing:.05em;background:rgba(255,253,248,.92);color:#6f665a;padding:3px 9px;border-radius:20px;">{{ al.countLabel }}</span>
+            <div style="position:relative;padding:12px 14px;color:#fff;">
+              <div style="font-family:'Caveat',cursive;font-size:24px;line-height:1.05;text-shadow:0 1px 4px rgba(0,0,0,.4);">{{ al.name }}</div>
+              <div style="font-size:12px;opacity:.95;margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,.55);">tap to add your photos ↗</div>
+            </div>
+          </div>
+          </a>
+          <sc-if value="{{ admin }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ al.remove }}" title="remove" style="position:absolute;top:-8px;left:-8px;width:28px;height:28px;border-radius:50%;background:#b23b2e;color:#fff;border:2px solid #fff;font-size:13px;cursor:pointer;z-index:4;line-height:1;">✕</button>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="text-align:center;margin-top:26px;font-size:13px;color:#a8997f;font-style:italic;line-height:1.6;">everything lives in our shared photo library · open an album to add photos in bulk<br/>you can add, never delete — so every memory stays safe</div>
+  </div>
+  </sc-if>
+
+  <!-- ============================================================ MESSAGES -->
+  <sc-if value="{{ isMessages }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:720px;margin:0 auto;padding:28px 18px 70px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-family:'Caveat',cursive;font-size:34px;font-weight:700;color:#3a342d;">messages for Cali</div>
+      <div style="font-size:15.5px;color:#6f665a;margin-top:8px;">leave a note, a memory, a goodbye. she'd love to hear from you.</div>
+    </div>
+
+    <div style="background:#fffdf8;border:1px solid #ece1cb;border-radius:16px;box-shadow:0 7px 18px rgba(60,40,20,.1);padding:18px;display:flex;flex-direction:column;gap:11px;margin-bottom:26px;">
+      <input ref="{{ refMsgName }}" placeholder="your name" style="font-family:'Caveat',cursive;font-size:20px;border:none;border-bottom:1.5px solid #ece1cb;padding:7px 4px;outline:none;background:none;color:#3a342d;"/>
+      <textarea ref="{{ refMsgText }}" placeholder="write your message…" rows="3" style="font-family:'Caveat',cursive;font-size:21px;border:1.5px solid #ece1cb;border-radius:12px;padding:11px;outline:none;resize:vertical;background:#fbf7ef;color:#3a342d;"></textarea>
+      <button onClick="{{ addMessage }}" style="align-self:flex-start;font-family:'Caveat',cursive;font-size:20px;background:{{ accent }};color:#fff;border:none;padding:9px 26px;border-radius:24px;cursor:pointer;">leave your message</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <sc-for list="{{ messages }}" as="m" hint-placeholder-count="2">
+        <div style="background:#fffdf8;border-radius:14px;box-shadow:0 5px 14px rgba(60,40,20,.1);padding:16px 18px;transform:rotate({{ m.rot }}deg);position:relative;">
+          <div style="font-family:'Caveat',cursive;font-size:21px;line-height:1.4;color:#3a342d;">{{ m.text }}</div>
+          <div style="font-size:13px;color:#9a8e79;font-style:italic;margin-top:8px;">— {{ m.author }}</div>
+          <sc-if value="{{ admin }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ m.remove }}" style="position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:#b23b2e;color:#fff;border:2px solid #fff;font-size:13px;cursor:pointer;line-height:1;">✕</button>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============================================================ QUOTES -->
+  <sc-if value="{{ isQuotes }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:720px;margin:0 auto;padding:28px 18px 70px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-family:'Caveat',cursive;font-size:34px;font-weight:700;color:#3a342d;">quotes by Cali</div>
+      <div style="font-size:15.5px;color:#6f665a;margin-top:8px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.5;">the things she said that we'll never forget. add one you remember.</div>
+    </div>
+
+    <div style="background:#fffdf8;border:1px solid #ece1cb;border-radius:16px;box-shadow:0 7px 18px rgba(60,40,20,.1);padding:18px;display:flex;flex-direction:column;gap:11px;margin-bottom:26px;">
+      <textarea ref="{{ refQuoteText }}" placeholder="“something she always said…”" rows="2" style="font-family:'Caveat',cursive;font-size:22px;border:1.5px solid #ece1cb;border-radius:12px;padding:11px;outline:none;resize:vertical;background:#fbf7ef;color:#3a342d;"></textarea>
+      <input ref="{{ refQuoteCtx }}" placeholder="when / who remembers it (optional)" style="font-family:'Spectral',serif;font-size:15px;border:none;border-bottom:1.5px solid #ece1cb;padding:7px 4px;outline:none;background:none;color:#3a342d;"/>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button onClick="{{ pickQuoteFile }}" style="display:inline-flex;align-items:center;gap:7px;font-family:'Spectral',serif;font-size:14px;background:#f3ece0;color:#6f665a;border:1px solid #e2d6bf;padding:8px 14px;border-radius:20px;cursor:pointer;">📎 attach a photo or video</button>
+        <sc-if value="{{ hasQuoteAttach }}" hint-placeholder-val="{{ false }}">
+          <span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#3a342d;background:#eef3ec;border:1px solid #d9e6d6;padding:6px 8px 6px 12px;border-radius:16px;max-width:230px;">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ quoteAttachName }}</span>
+            <button onClick="{{ clearQuoteAttach }}" style="background:none;border:none;color:#9a8e79;cursor:pointer;font-size:14px;line-height:1;">✕</button>
+          </span>
+        </sc-if>
+        <input ref="{{ refQuoteFile }}" type="file" accept="image/*,video/*" style="display:none;"/>
+      </div>
+      <div style="font-size:12px;color:#a8997f;margin-top:-2px;">attachments are saved to her quotes album · tap one later to see it</div>
+      <button onClick="{{ addQuote }}" style="align-self:flex-start;font-family:'Caveat',cursive;font-size:20px;background:{{ accent }};color:#fff;border:none;padding:9px 26px;border-radius:24px;cursor:pointer;">add this quote</button>
+    </div>
+
+    <sc-if value="{{ quotesEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:30px 20px;font-family:'Caveat',cursive;font-size:24px;color:#6f665a;">be the first to add one of her sayings</div>
+    </sc-if>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
+      <sc-for list="{{ quotes }}" as="q" hint-placeholder-count="3">
+        <div style="position:relative;background:#fffdf8;border-radius:16px;box-shadow:0 5px 14px rgba(60,40,20,.1);padding:22px 20px;display:flex;flex-direction:column;gap:10px;">
+          <span style="font-family:'Caveat',cursive;font-size:46px;color:{{ accentSoft }};line-height:.6;height:22px;">“</span>
+          <div style="font-family:'Caveat',cursive;font-size:24px;line-height:1.3;color:#3a342d;">{{ q.text }}</div>
+          <sc-if value="{{ q.hasCtx }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px;color:#9a8e79;font-style:italic;">{{ q.ctx }}</div>
+          </sc-if>
+          <sc-if value="{{ q.hasMedia }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ q.openMedia }}" style="display:inline-flex;align-items:center;gap:9px;align-self:flex-start;background:#f6efe3;border:1px solid #e6ddcb;border-radius:12px;padding:6px 12px 6px 6px;cursor:pointer;margin-top:2px;">
+              {{ q.mediaThumb }}
+              <span style="font-family:'Spectral',serif;font-size:13px;color:#6f665a;">{{ q.mediaLabel }}</span>
+            </button>
+          </sc-if>
+          <sc-if value="{{ admin }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ q.remove }}" style="position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:#b23b2e;color:#fff;border:2px solid #fff;font-size:13px;cursor:pointer;line-height:1;">✕</button>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============================================================ OCEAN SPRAY EVENT -->
+  <sc-if value="{{ isEvent }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:760px;margin:0 auto;padding:0 0 70px;">
+    <div style="position:relative;overflow:hidden;background:linear-gradient(165deg,#dfeceb 0%,#bcd6d2 48%,#9bc1bd 100%);padding:48px 22px 40px;text-align:center;">
+      <div style="position:absolute;left:0;right:0;bottom:-2px;height:40px;background:radial-gradient(60% 100% at 50% 0,rgba(255,255,255,.5),transparent);"></div>
+      <div style="font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:#3f6f6a;">a celebration of her life</div>
+      <div style="font-family:'Caveat',cursive;font-size:clamp(46px,11vw,68px);font-weight:700;color:#27524d;line-height:.95;margin-top:6px;">Ocean Spray</div>
+      <div style="font-family:'Spectral',serif;font-style:italic;font-size:17px;color:#3f6f6a;margin-top:10px;">come as you are · wear something blue 🌊</div>
+    </div>
+
+    <div style="padding:28px 18px 0;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;">
+        <sc-for list="{{ eventFacts }}" as="ef" hint-placeholder-count="4">
+          <div style="background:#fffdf8;border:1px solid #e3e7e2;border-radius:16px;padding:18px;box-shadow:0 5px 14px rgba(40,70,65,.08);">
+            <div style="font-size:22px;">{{ ef.icon }}</div>
+            <div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#7d958f;margin-top:8px;">{{ ef.label }}</div>
+            <div style="font-family:'Caveat',cursive;font-size:23px;color:#27524d;line-height:1.15;margin-top:3px;">{{ ef.value }}</div>
+            <div style="font-size:13.5px;color:#6f7a72;margin-top:3px;">{{ ef.note }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fffdf8;border:1px solid #e3e7e2;border-radius:16px;padding:22px;margin-top:16px;box-shadow:0 5px 14px rgba(40,70,65,.08);">
+        <div style="font-family:'Caveat',cursive;font-size:26px;color:#27524d;">a few notes</div>
+        <ul style="margin:12px 0 0;padding-left:20px;color:#52483c;font-size:16px;line-height:1.7;">
+          <li>Wear ocean colors — blues, greens, anything that felt like her.</li>
+          <li>Bring a photo or a memory to share; we'll be collecting them all day.</li>
+          <li>There will be boba. Obviously. 🧋</li>
+        </ul>
+      </div>
+
+      <div style="display:flex;justify-content:center;margin-top:22px;">
+        <button onClick="{{ rsvp }}" style="font-family:'Caveat',cursive;font-size:22px;background:#3f8079;color:#fff;border:none;padding:11px 30px;border-radius:26px;cursor:pointer;box-shadow:0 6px 16px rgba(40,90,82,.3);">{{ rsvpLabel }}</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============================================================ RESOURCES -->
+  <sc-if value="{{ isResources }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:680px;margin:0 auto;padding:28px 18px 70px;">
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-family:'Caveat',cursive;font-size:34px;font-weight:700;color:#3a342d;">you're not alone</div>
+      <div style="font-size:16px;color:#52483c;max-width:520px;margin:10px auto 0;line-height:1.65;">Grief is heavy, and it's okay to ask for help carrying it. If you or someone you love is struggling, please reach out — these lines are free, confidential, and open around the clock.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:13px;">
+      <sc-for list="{{ resources }}" as="r" hint-placeholder-count="4">
+        <a href="{{ r.href }}" style="text-decoration:none;color:inherit;display:flex;gap:14px;align-items:center;background:#fffdf8;border:1px solid #ece1cb;border-radius:16px;padding:16px 18px;box-shadow:0 5px 14px rgba(60,40,20,.08);">
+          <div style="width:46px;height:46px;flex:none;border-radius:50%;background:{{ accentSoft }};display:flex;align-items:center;justify-content:center;font-size:22px;">{{ r.icon }}</div>
+          <div style="flex:1;">
+            <div style="font-family:'Spectral',serif;font-weight:600;font-size:16.5px;color:#3a342d;">{{ r.name }}</div>
+            <div style="font-size:14px;color:#6f665a;margin-top:2px;line-height:1.4;">{{ r.desc }}</div>
+          </div>
+          <div style="font-family:'Caveat',cursive;font-size:21px;color:{{ accent }};white-space:nowrap;">{{ r.action }}</div>
+        </a>
+      </sc-for>
+    </div>
+
+    <div style="text-align:center;margin-top:24px;font-size:13.5px;color:#a8997f;font-style:italic;line-height:1.6;">If you are in immediate danger, please call your local emergency number.<br/>These resources are based in the United States.</div>
+  </div>
+  </sc-if>
+
+  <!-- ===== NEW ALBUM MODAL ===== -->
+  <sc-if value="{{ showNewAlbum }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:70;background:rgba(35,25,15,.55);display:flex;align-items:center;justify-content:center;padding:18px;">
+    <div onClick="{{ stop }}" style="background:#f7f2e9;border-radius:18px;max-width:460px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.4);max-height:92vh;overflow:auto;animation:fadein .22s ease;">
+      <sc-if value="{{ albumForm }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:'Caveat',cursive;font-size:28px;font-weight:700;color:#3a342d;">create a new album</div>
+        <div style="font-size:13px;color:#6f665a;line-height:1.5;margin:5px 0 16px;">Give it a name and pick a cover. Once it's made, open the album to upload your photos in bulk in our photo library — no account needed.</div>
+
+        <label style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9a8e79;">album name</label>
+        <input ref="{{ refAlbName }}" placeholder="e.g. Santa Monica Days" style="width:100%;font-family:'Caveat',cursive;font-size:20px;border:1.5px solid #e2dac9;border-radius:10px;padding:9px 11px;outline:none;background:#fbf7ef;margin:6px 0 16px;color:#3a342d;"/>
+
+        <label style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9a8e79;">cover photo</label>
+        <div onClick="{{ pickCover }}" style="cursor:pointer;margin:6px 0 6px;border:2px dashed #c9bca4;border-radius:12px;height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fbf7ef;">
+          <sc-if value="{{ hasCover }}" hint-placeholder-val="{{ false }}">{{ coverPreview }}</sc-if>
+          <sc-if value="{{ noCover }}" hint-placeholder-val="{{ true }}"><span style="font-family:'Caveat',cursive;font-size:19px;color:#9a8e79;">📷 choose one cover image</span></sc-if>
+        </div>
+        <div style="font-size:12px;color:#a8997f;line-height:1.45;margin-bottom:14px;">Optional — if you skip it, we'll pick one for now. You can change it anytime.</div>
+        <input ref="{{ refCoverFile }}" type="file" accept="image/*" style="display:none;"/>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button onClick="{{ closeModal }}" style="font-family:'Caveat',cursive;font-size:19px;background:#ece6d9;color:#6f665a;border:none;padding:8px 20px;border-radius:22px;cursor:pointer;">cancel</button>
+          <button onClick="{{ submitAlbum }}" style="font-family:'Caveat',cursive;font-size:19px;background:{{ accent }};color:#fff;border:none;padding:8px 24px;border-radius:22px;cursor:pointer;">create album</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ albumDone }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center;padding:6px 4px 2px;">
+          <div style="font-size:38px;">📸</div>
+          <div style="font-family:'Caveat',cursive;font-size:28px;font-weight:700;color:#3a342d;margin-top:6px;line-height:1.1;">“{{ createdName }}” is ready</div>
+          <div style="font-size:14.5px;color:#52483c;line-height:1.6;margin:10px auto 0;max-width:330px;">Now open the album and upload your photos in bulk on the photo library — add as many as you like, all at once.</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
+            <a href="{{ createdLink }}" target="_blank" rel="noopener" style="text-decoration:none;font-family:'Caveat',cursive;font-size:20px;background:{{ accent }};color:#fff;padding:12px 24px;border-radius:24px;">open album to add photos ↗</a>
+            <button onClick="{{ closeModal }}" style="font-family:'Caveat',cursive;font-size:18px;background:none;color:#9a8e79;border:none;cursor:pointer;">I'll do it later</button>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===== QUOTE MEDIA LIGHTBOX ===== -->
+  <sc-if value="{{ viewingMedia }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeMedia }}" style="position:fixed;inset:0;z-index:70;background:rgba(25,18,10,.8);display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div onClick="{{ stop }}" style="max-width:760px;width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;animation:fadein .22s ease;">
+      {{ mediaEl }}
+      <button onClick="{{ closeMedia }}" style="font-family:'Caveat',cursive;font-size:19px;background:rgba(255,255,255,.14);color:#fff;border:none;padding:8px 24px;border-radius:22px;cursor:pointer;">close</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===== ADMIN TOGGLE ===== -->
+  <button onClick="{{ toggleAdmin }}" title="admin" style="position:fixed;left:14px;bottom:16px;z-index:55;width:38px;height:38px;border-radius:50%;background:{{ adminBtnBg }};color:#fff;border:none;cursor:pointer;font-size:15px;box-shadow:0 4px 10px rgba(0,0,0,.25);">{{ adminIcon }}</button>
+  <sc-if value="{{ admin }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:58px;bottom:20px;z-index:55;background:#b23b2e;color:#fff;font-family:'Caveat',cursive;font-size:15px;padding:5px 13px;border-radius:18px;box-shadow:0 4px 10px rgba(0,0,0,.3);">admin mode — remove items · create albums</div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;name&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Cali&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dates&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;♡&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#c2724f&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#c2724f&quot;,&quot;#b5704f&quot;,&quot;#3f8079&quot;,&quot;#a87090&quot;,&quot;#9a8e79&quot;]},&quot;defaultAlbumLink&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    view: 'home',
+    menuOpen: false,
+    admin: false,
+    modal: null,
+    tick: 0,
+    messages: [],
+    quotes: [],
+    albums: [],
+    coverDraft: null,
+    modalStep: 'form',
+    createdName: '',
+    createdLink: '#',
+    quoteAttach: null,
+    viewMedia: null,
+    rsvped: false,
+  };
+
+  seedAlbums() {
+    return [
+      { id: 'a1', name: 'Santa Monica Days', count: 24, cover: 'linear-gradient(140deg,#e8c9a0,#cf9b6e)', link: '#', img: null },
+      { id: 'a2', name: 'Mahjong Nights', count: 18, cover: 'linear-gradient(140deg,#cdbf9a,#9aa873)', link: '#', img: null },
+      { id: 'a3', name: 'The Sisters', count: 31, cover: 'linear-gradient(140deg,#e0c3b0,#c98a86)', link: '#', img: null },
+      { id: 'a4', name: 'Her Cats', count: 42, cover: 'linear-gradient(140deg,#e6cfa6,#caa15f)', link: '#', img: null },
+    ];
+  }
+  seedMessages() {
+    return [
+      { id: 'm1', text: 'She always had the best snacks and the worst jokes. Miss you, sis.', author: 'a friend', ts: 2 },
+      { id: 'm2', text: 'Boba runs will never be the same without you.', author: 'cousin', ts: 1 },
+    ];
+  }
+
+  componentDidMount() {
+    this.load();
+    this._timer = setInterval(() => this.setState(s => ({ tick: s.tick + 1 })), 3600);
+  }
+  componentWillUnmount() { clearInterval(this._timer); }
+
+  load() {
+    try {
+      const raw = localStorage.getItem('cali_memorial_v1');
+      if (raw) {
+        const d = JSON.parse(raw);
+        this.setState({
+          messages: d.messages || this.seedMessages(),
+          quotes: d.quotes || [],
+          albums: d.albums || this.seedAlbums(),
+        });
+      } else {
+        this.setState({ messages: this.seedMessages(), albums: this.seedAlbums(), quotes: [] });
+      }
+    } catch (e) {
+      console.warn('load failed', e);
+      this.setState({ messages: this.seedMessages(), albums: this.seedAlbums() });
+    }
+  }
+  save(patch) {
+    const data = {
+      messages: patch.messages ?? this.state.messages,
+      quotes: patch.quotes ?? this.state.quotes,
+      albums: patch.albums ?? this.state.albums,
+    };
+    try { localStorage.setItem('cali_memorial_v1', JSON.stringify(data)); }
+    catch (e) { console.warn('save failed', e); }
+  }
+
+  uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  hashFloat(id, salt) { const s = id + (salt || ''); let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 1000) / 1000; }
+
+  go(view) { this.setState({ view, menuOpen: false, modal: null }); window.scrollTo(0, 0); }
+
+  async fileToDataURL(file, max = 1100, q = 0.82) {
+    const raw = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); });
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = raw; });
+    let { width: w, height: h } = img;
+    if (Math.max(w, h) > max) { const s = max / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    return c.toDataURL('image/jpeg', q);
+  }
+
+  // messages
+  addMessage() {
+    const text = (this._msgText && this._msgText.value.trim()); if (!text) return;
+    const author = (this._msgName && this._msgName.value.trim()) || 'anonymous';
+    const messages = [{ id: this.uid(), text, author, ts: Date.now() }, ...this.state.messages];
+    this.setState({ messages }); this.save({ messages });
+    if (this._msgText) this._msgText.value = ''; if (this._msgName) this._msgName.value = '';
+  }
+  removeMessage(id) { const messages = this.state.messages.filter(m => m.id !== id); this.setState({ messages }); this.save({ messages }); }
+
+  // quotes
+  addQuote() {
+    const text = (this._qText && this._qText.value.trim()); if (!text) return;
+    const ctx = (this._qCtx && this._qCtx.value.trim()) || '';
+    const att = this.state.quoteAttach;
+    const media = att ? { type: att.type, name: att.name, src: att.src, thumb: att.thumb } : null;
+    const quotes = [{ id: this.uid(), text, ctx, media, ts: Date.now() }, ...this.state.quotes];
+    this.setState({ quotes, quoteAttach: null }); this.save({ quotes });
+    if (this._qText) this._qText.value = ''; if (this._qCtx) this._qCtx.value = '';
+    if (this._quoteFile) this._quoteFile.value = '';
+  }
+  removeQuote(id) { const quotes = this.state.quotes.filter(q => q.id !== id); this.setState({ quotes }); this.save({ quotes }); }
+
+  // albums
+  defaultAlbumLink() { return this.props.defaultAlbumLink || '#'; }
+  addToDefault() { const l = this.defaultAlbumLink(); if (l && l !== '#') window.open(l, '_blank', 'noopener'); else alert('This opens our shared “add your photos” album in the photo library (link set up by the family).'); }
+  openNewAlbum() { this.setState({ modal: 'album', modalStep: 'form', coverDraft: null }); }
+  pickCover() { this._coverFile && this._coverFile.click(); }
+  async onCoverFile(e) { const f = e.target.files && e.target.files[0]; if (!f) return; try { const d = await this.fileToDataURL(f, 900, 0.82); this.setState({ coverDraft: d }); } catch (err) { console.warn(err); } }
+  submitAlbum() {
+    const name = (this._albName && this._albName.value.trim()) || 'Untitled Album';
+    const grads = ['linear-gradient(140deg,#e8c9a0,#cf9b6e)', 'linear-gradient(140deg,#cdbf9a,#9aa873)', 'linear-gradient(140deg,#e0c3b0,#c98a86)', 'linear-gradient(140deg,#bcd0cf,#7aa6a3)', 'linear-gradient(140deg,#e6cfa6,#caa15f)'];
+    const grad = grads[Math.floor(Math.random() * grads.length)];
+    const link = this.defaultAlbumLink();
+    const album = { id: this.uid(), name, count: 0, cover: grad, link, img: this.state.coverDraft || null };
+    const albums = [album, ...this.state.albums];
+    this.setState({ albums, modalStep: 'done', createdName: name, createdLink: link, coverDraft: null });
+    this.save({ albums });
+  }
+  removeAlbum(id) { const albums = this.state.albums.filter(a => a.id !== id); this.setState({ albums }); this.save({ albums }); }
+
+  // quote attachments
+  pickQuoteFile() { this._quoteFile && this._quoteFile.click(); }
+  async onQuoteFile(e) {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try {
+      if (f.type.startsWith('image/')) {
+        const src = await this.fileToDataURL(f, 1280, 0.82);
+        this.setState({ quoteAttach: { type: 'image', name: f.name, src, thumb: src } });
+      } else if (f.type.startsWith('video/')) {
+        const url = URL.createObjectURL(f);
+        const thumb = await this.videoPoster(url).catch(() => null);
+        this.setState({ quoteAttach: { type: 'video', name: f.name, src: url, thumb } });
+      }
+    } catch (err) { console.warn(err); }
+  }
+  videoPoster(url) {
+    return new Promise((res, rej) => {
+      const v = document.createElement('video'); v.src = url; v.muted = true; v.playsInline = true;
+      v.onloadeddata = () => { try { v.currentTime = Math.min(0.3, (v.duration || 1) * 0.1); } catch (e) { rej(e); } };
+      v.onseeked = () => {
+        try {
+          const w = 220, h = Math.round(220 * ((v.videoHeight / v.videoWidth) || 0.66));
+          const c = document.createElement('canvas'); c.width = w; c.height = h;
+          c.getContext('2d').drawImage(v, 0, 0, w, h);
+          res(c.toDataURL('image/jpeg', 0.7));
+        } catch (e) { rej(e); }
+      };
+      v.onerror = rej;
+    });
+  }
+  clearQuoteAttach() { this.setState({ quoteAttach: null }); if (this._quoteFile) this._quoteFile.value = ''; }
+
+  rotImg(bg, cap, key) {
+    const E = React.createElement;
+    return E('div', { key, style: { animation: 'xfade .9s ease' } },
+      E('div', { style: { background: '#fffdf8', padding: '8px 8px 0', borderRadius: '4px', boxShadow: '0 9px 22px rgba(60,40,20,.2)' } },
+        E('div', { style: { width: '112px', height: '112px', background: bg, borderRadius: '2px' } }),
+        E('div', { style: { fontFamily: "'Caveat',cursive", fontSize: '16px', textAlign: 'center', color: '#6f665a', padding: '5px 2px 7px', lineHeight: 1 } }, cap)
+      )
+    );
+  }
+
+  renderVals() {
+    const accent = this.props.accent || '#c2724f';
+    const accentSoft = '#f0e2d2';
+    const name = this.props.name || 'Cali';
+    const dates = this.props.dates || '♡';
+    const v = this.state.view;
+
+    const navDef = [
+      { key: 'home', short: 'Home', long: 'Home', icon: '🏠' },
+      { key: 'gallery', short: 'Albums', long: 'Photo Albums', icon: '📷' },
+      { key: 'messages', short: 'Messages', long: 'Messages for Cali', icon: '✉️' },
+      { key: 'quotes', short: 'Quotes', long: 'Quotes by Cali', icon: '💬' },
+      { key: 'event', short: 'Ocean Spray', long: 'Ocean Spray', icon: '🌊' },
+      { key: 'resources', short: 'Resources', long: 'Mental Health', icon: '🤍' },
+    ];
+    const navItems = navDef.map(n => ({
+      short: n.short, long: n.long, icon: n.icon,
+      bg: v === n.key ? accent : 'transparent',
+      fg: v === n.key ? '#fff' : '#52483c',
+      drawerBg: v === n.key ? accent : '#efe6d6',
+      drawerFg: v === n.key ? '#fff' : '#3a342d',
+      go: () => this.go(n.key),
+    }));
+
+    const homeLinks = [
+      { key: 'gallery', icon: '📷', label: 'Photo Albums', sub: 'look through her photos' },
+      { key: 'messages', icon: '✉️', label: 'Leave a Message', sub: 'a note for Cali' },
+      { key: 'event', icon: '🌊', label: 'Ocean Spray', sub: 'the celebration' },
+      { key: 'quotes', icon: '💬', label: 'Her Quotes', sub: 'things she said' },
+    ].map(l => ({ ...l, go: () => this.go(l.key) }));
+
+    // rotating polaroids from "gallery"
+    const pool = [
+      ['linear-gradient(140deg,#e8c9a0,#cf9b6e)', 'Santa Monica'],
+      ['linear-gradient(140deg,#d9b08c,#b5704f)', 'boba run'],
+      ['linear-gradient(140deg,#cdbf9a,#9aa873)', 'mahjong night'],
+      ['linear-gradient(140deg,#e0c3b0,#c98a86)', 'the girls'],
+      ['linear-gradient(140deg,#bcd0cf,#7aa6a3)', 'by the water'],
+      ['linear-gradient(140deg,#e6cfa6,#caa15f)', 'her cats'],
+    ];
+    const pick = (off) => { const i = (this.state.tick + off) % pool.length; return pool[i]; };
+    const rotL1 = pick(0), rotL2 = pick(3), rotR1 = pick(1), rotR2 = pick(4), rotM1 = pick(2), rotM2 = pick(5);
+    const heroLeft = React.createElement(React.Fragment, null,
+      React.createElement('div', { style: { transform: 'rotate(-4deg)' } }, this.rotImg(rotL1[0], rotL1[1], 'L1' + this.state.tick)),
+      React.createElement('div', { style: { transform: 'rotate(3deg)' } }, this.rotImg(rotL2[0], rotL2[1], 'L2' + this.state.tick)),
+    );
+    const heroRight = React.createElement(React.Fragment, null,
+      React.createElement('div', { style: { transform: 'rotate(4deg)' } }, this.rotImg(rotR1[0], rotR1[1], 'R1' + this.state.tick)),
+      React.createElement('div', { style: { transform: 'rotate(-3deg)' } }, this.rotImg(rotR2[0], rotR2[1], 'R2' + this.state.tick)),
+    );
+    const heroMobile = React.createElement(React.Fragment, null,
+      React.createElement('div', { style: { transform: 'rotate(-4deg)' } }, this.rotImg(rotM1[0], rotM1[1], 'M1' + this.state.tick)),
+      React.createElement('div', { style: { transform: 'rotate(4deg)' } }, this.rotImg(rotM2[0], rotM2[1], 'M2' + this.state.tick)),
+    );
+
+    const albums = this.state.albums.map(a => ({
+      ...a,
+      countLabel: a.count > 0 ? (a.count + ' photos') : 'new album',
+      coverImg: a.img ? React.createElement('img', { src: a.img, alt: '', style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null,
+      remove: (e) => { e && e.preventDefault && e.preventDefault(); this.removeAlbum(a.id); },
+    }));
+
+    const messages = this.state.messages.map(m => ({ ...m, rot: (this.hashFloat(m.id, 'r') * 3 - 1.5).toFixed(2), remove: () => this.removeMessage(m.id) }));
+    const quotes = this.state.quotes.map(q => ({
+      ...q,
+      hasCtx: !!q.ctx,
+      hasMedia: !!q.media,
+      mediaLabel: q.media ? (q.media.type === 'video' ? 'watch the moment' : 'see the photo') : '',
+      mediaThumb: q.media ? React.createElement('span', { style: { width: '36px', height: '36px', borderRadius: '8px', overflow: 'hidden', background: '#e7ddc9', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', position: 'relative' } },
+        q.media.thumb ? React.createElement('img', { src: q.media.thumb, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover' } }) : React.createElement('span', { style: { fontSize: '16px' } }, q.media.type === 'video' ? '🎬' : '🖼️'),
+        q.media.type === 'video' ? React.createElement('span', { style: { position: 'absolute', color: '#fff', fontSize: '13px', textShadow: '0 1px 3px rgba(0,0,0,.7)' } }, '▶') : null
+      ) : null,
+      openMedia: () => this.setState({ viewMedia: q.media }),
+      remove: () => this.removeQuote(q.id),
+    }));
+
+    const eventFacts = [
+      { icon: '🗓️', label: 'when', value: 'Saturday, [date]', note: 'gathering at 11:00am' },
+      { icon: '📍', label: 'where', value: 'Santa Monica', note: '[venue / beach spot]' },
+      { icon: '👕', label: 'dress', value: 'ocean colors', note: 'blues, greens, easy & comfy' },
+      { icon: '🤍', label: 'bring', value: 'a memory', note: 'a photo or story to share' },
+    ];
+
+    const resources = [
+      { icon: '📞', name: '988 Suicide & Crisis Lifeline', desc: 'Free, confidential support 24/7. Call or text 988.', action: 'call 988', href: 'tel:988' },
+      { icon: '💬', name: 'Crisis Text Line', desc: 'Text with a trained crisis counselor anytime.', action: 'text HOME → 741741', href: 'sms:741741' },
+      { icon: '🤝', name: 'SAMHSA National Helpline', desc: 'Treatment referrals & information, 24/7.', action: '1-800-662-4357', href: 'tel:18006624357' },
+      { icon: '🧠', name: 'NAMI HelpLine', desc: 'Mental health info, support & resources.', action: '1-800-950-6264', href: 'tel:18009506264' },
+    ];
+
+    return {
+      name, dates, accent, accentSoft,
+      navItems, homeLinks,
+      goHome: () => this.go('home'),
+      menuOpen: this.state.menuOpen,
+      toggleMenu: () => this.setState(s => ({ menuOpen: !s.menuOpen })),
+      closeMenu: () => this.setState({ menuOpen: false }),
+      stop: e => e.stopPropagation(),
+
+      isHome: v === 'home', isGallery: v === 'gallery', isMessages: v === 'messages',
+      isQuotes: v === 'quotes', isEvent: v === 'event', isResources: v === 'resources',
+
+      heroLeft, heroRight, heroMobile,
+
+      // gallery
+      albums, albumsEmpty: albums.length === 0,
+      addToDefault: () => this.addToDefault(),
+      openNewAlbum: () => this.openNewAlbum(),
+      showNewAlbum: this.state.modal === 'album',
+      albumForm: this.state.modalStep === 'form',
+      albumDone: this.state.modalStep === 'done',
+      createdName: this.state.createdName,
+      createdLink: this.state.createdLink,
+      pickCover: () => this.pickCover(),
+      refCoverFile: el => { this._coverFile = el; if (el) el.onchange = e => this.onCoverFile(e); },
+      hasCover: !!this.state.coverDraft, noCover: !this.state.coverDraft,
+      coverPreview: this.state.coverDraft ? React.createElement('img', { src: this.state.coverDraft, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover' } }) : null,
+      refAlbName: el => this._albName = el,
+      submitAlbum: () => this.submitAlbum(),
+      closeModal: () => this.setState({ modal: null, modalStep: 'form' }),
+
+      // messages
+      messages, refMsgName: el => this._msgName = el, refMsgText: el => this._msgText = el,
+      addMessage: () => this.addMessage(),
+
+      // quotes
+      quotes, quotesEmpty: quotes.length === 0,
+      refQuoteText: el => this._qText = el, refQuoteCtx: el => this._qCtx = el,
+      addQuote: () => this.addQuote(),
+      pickQuoteFile: () => this.pickQuoteFile(),
+      refQuoteFile: el => { this._quoteFile = el; if (el) el.onchange = e => this.onQuoteFile(e); },
+      hasQuoteAttach: !!this.state.quoteAttach,
+      quoteAttachName: this.state.quoteAttach ? this.state.quoteAttach.name : '',
+      clearQuoteAttach: () => this.clearQuoteAttach(),
+      viewingMedia: !!this.state.viewMedia,
+      mediaEl: this.state.viewMedia ? (this.state.viewMedia.type === 'video'
+        ? React.createElement('video', { src: this.state.viewMedia.src, controls: true, autoPlay: true, playsInline: true, style: { maxWidth: '100%', maxHeight: '72vh', borderRadius: '10px', background: '#000' } })
+        : React.createElement('img', { src: this.state.viewMedia.src, alt: '', style: { maxWidth: '100%', maxHeight: '72vh', borderRadius: '10px', boxShadow: '0 12px 40px rgba(0,0,0,.5)' } })) : null,
+      closeMedia: () => this.setState({ viewMedia: null }),
+
+      // event
+      eventFacts,
+      rsvp: () => this.setState(s => ({ rsvped: !s.rsvped })),
+      rsvpLabel: this.state.rsvped ? "♡ we'll see you there" : "let us know you're coming",
+
+      // resources
+      resources,
+
+      // admin
+      admin: this.state.admin,
+      toggleAdmin: () => this.setState(s => ({ admin: !s.admin })),
+      adminIcon: this.state.admin ? '🔓' : '🔒',
+      adminBtnBg: this.state.admin ? '#b23b2e' : 'rgba(58,52,45,.85)',
+    };
+  }
+}
+</script>
+</body>
+</html>
