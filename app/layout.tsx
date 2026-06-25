@@ -1,19 +1,23 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
-import { db } from '@/lib/db';
 import './globals.css';
 
 const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME ?? 'Kathryn Cali Lee';
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? '';
 
-/** Derive the public origin from the actual incoming request so OG image URLs
- *  are correct on both welovekat.lacueva.us and welovecali.lacueva.us */
+/** Derive the public origin from the actual incoming request.
+ *  Checks headers in priority order to handle Cloudflare → Nginx → Docker chains. */
 async function getOrigin(): Promise<string> {
   try {
     const h = await headers();
-    const host = h.get('host');
-    // x-forwarded-proto is set by Cloudflare / nginx reverse proxy
-    const proto = h.get('x-forwarded-proto') ?? 'https';
+    // x-forwarded-host is set by Nginx Proxy Manager when it has multiple upstreams
+    const host =
+      h.get('x-forwarded-host')?.split(',')[0].trim() ??
+      h.get('host');
+    // Cloudflare sets x-forwarded-proto; CF-Visitor is a fallback
+    const cfVisitor = h.get('cf-visitor'); // e.g. {"scheme":"https"}
+    const cfProto = cfVisitor ? (JSON.parse(cfVisitor) as { scheme?: string }).scheme : null;
+    const proto = h.get('x-forwarded-proto')?.split(',')[0].trim() ?? cfProto ?? 'https';
     if (host) return `${proto}://${host}`;
   } catch {
     // headers() throws outside of a request context (e.g. static build)
@@ -23,21 +27,10 @@ async function getOrigin(): Promise<string> {
 
 export async function generateMetadata(): Promise<Metadata> {
   const origin = await getOrigin();
-  let ogImageUrl: string | undefined;
 
-  try {
-    const portraitConfig = await db.siteConfig.findUnique({ where: { key: 'bio_hero_img_path' } });
-    if (portraitConfig?.value?.startsWith('immich:')) {
-      const assetId = portraitConfig.value.slice(7);
-      ogImageUrl = `${origin}/api/immich/thumbnail?assetId=${assetId}`;
-    }
-  } catch {
-    // DB may not be available at build time — ignore
-  }
-
-  const ogImages = ogImageUrl
-    ? [{ url: ogImageUrl, width: 600, height: 600, alt: SITE_NAME }]
-    : [];
+  // /api/og-image always returns a rendered PNG — portrait + site name.
+  // Using a dedicated route avoids proxy-auth issues that affect /api/immich/thumbnail.
+  const ogImageUrl = `${origin}/api/og-image`;
 
   return {
     metadataBase: new URL(origin),
@@ -49,13 +42,13 @@ export async function generateMetadata(): Promise<Metadata> {
       description: 'A shared memorial scrapbook',
       type: 'website',
       siteName: SITE_NAME,
-      images: ogImages,
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: SITE_NAME }],
     },
     twitter: {
       card: 'summary_large_image',
       title: SITE_NAME,
       description: 'A shared memorial scrapbook',
-      images: ogImageUrl ? [ogImageUrl] : [],
+      images: [ogImageUrl],
     },
   };
 }
