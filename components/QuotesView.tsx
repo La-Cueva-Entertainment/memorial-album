@@ -230,7 +230,7 @@ function QuoteCard({ quote, bg, rot, admin, onRemove, albumLink, onOpenMedia }: 
             {isVideo && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.45)', color: '#fff', fontSize: 12 }}>&#9654;</div>}
           </div>
           <span style={{ fontFamily: "'Spectral', serif", fontSize: 13, color: '#52483c', fontStyle: 'italic' }}>
-            {isVideo ? 'watch the moment' : 'view memory'}
+            {'View Memory'}
           </span>
         </button>
       )}

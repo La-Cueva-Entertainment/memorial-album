@@ -7,7 +7,8 @@ export const runtime = 'nodejs';
 
 // Module-level cache so Apple's bot gets a fast response on the second hit
 // (first request generates the PNG; subsequent requests return from cache).
-let _cachedPng: Buffer | null = null;
+// Stored as ArrayBuffer — NextResponse accepts it natively (Buffer is not in BodyInit).
+let _cachedPng: ArrayBuffer | null = null;
 let _cacheExpiresAt = 0;
 
 export async function GET(_req: NextRequest) {
@@ -86,7 +87,7 @@ export async function GET(_req: NextRequest) {
   );
 
   // Store in module-level cache (1 hour)
-  const pngBuffer = Buffer.from(await imageResponse.arrayBuffer());
+  const pngBuffer = await imageResponse.arrayBuffer();
   _cachedPng = pngBuffer;
   _cacheExpiresAt = Date.now() + 3_600_000;
 
