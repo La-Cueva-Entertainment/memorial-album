@@ -52,11 +52,12 @@ export default function ResourcesView() {
       {/* Heading */}
       <div style={{ textAlign: 'center', marginBottom: 30 }}>
         <h1 style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(28px,4vw,40px)', color: '#3a342d', margin: '0 0 16px' }}>
-          you&apos;re not alone
+          You&apos;re Not Alone
         </h1>
         <p style={{ fontFamily: "'Spectral', serif", fontSize: 'clamp(14px,2vw,16px)', color: '#52483c', lineHeight: 1.65, margin: 0, maxWidth: 520, marginInline: 'auto' }}>
-          Grief is heavy, and it&apos;s okay to ask for help carrying it. If you or someone you love is struggling, please reach out &mdash; these lines are free, confidential, and open around the clock.
+          Grief is heavy, and it&apos;s okay to ask for help carrying it. If you or someone you love is struggling, please reach out. These lines are free, confidential, and open around the clock. 
         </p>
+        <p style={{ fontFamily: "'Spectral', serif", fontSize: 'clamp(14px,2vw,16px)', color: '#52483c', lineHeight: 1.65, margin: '12px 0 0', maxWidth: 520, marginInline: 'auto' }}>The world is a better place with you around.</p>
       </div>
 
       {/* Resource rows */}
@@ -85,11 +86,17 @@ export default function ResourcesView() {
         ))}
       </div>
 
+      {/* Emergency disclaimer — above the site-help section */}
+      <p style={{ textAlign: 'center', fontFamily: "'Spectral', serif", fontSize: 13, color: '#a8997f', fontStyle: 'italic', marginTop: 28, marginBottom: 28, lineHeight: 1.6 }}>
+        If you are in immediate danger, please call your local emergency number (911 in the US).<br />
+        These resources are based in the United States.
+      </p>
+
       {/* Site support */}
-      <div style={{ marginTop: 28, background: '#fffdf8', border: '1px solid #ece1cb', borderRadius: 14, padding: '18px 20px', textAlign: 'center' }}>
-        <div style={{ fontFamily: "'Spectral', serif", fontWeight: 600, fontSize: 16, color: '#3a342d', marginBottom: 6 }}>need help with the site?</div>
+      <div style={{ marginTop: 0, background: '#fffdf8', border: '1px solid #ece1cb', borderRadius: 14, padding: '18px 20px', textAlign: 'center' }}>
+        <div style={{ fontFamily: "'Spectral', serif", fontWeight: 600, fontSize: 16, color: '#3a342d', marginBottom: 6 }}>Need Help with the Site?</div>
         <p style={{ fontFamily: "'Spectral', serif", fontSize: 14, color: '#6f665a', margin: '0 0 14px', lineHeight: 1.6 }}>
-          if you&apos;d like to add more albums, share a memory, or need anything at all &mdash; just send us a note.
+          If you&apos;d like to add more albums, share a memory, or need anything at all, just send us a note.
         </p>
         <button
           onClick={() => { if (contactHref) window.location.href = contactHref; }}
@@ -103,15 +110,9 @@ export default function ResourcesView() {
             opacity: contactHref ? 1 : 0.6,
           }}
         >
-          send a message &#9825;
+          Send a Message &#9825;
         </button>
       </div>
-
-      {/* Footer */}
-      <p style={{ textAlign: 'center', fontFamily: "'Spectral', serif", fontSize: 13, color: '#a8997f', fontStyle: 'italic', marginTop: 28, lineHeight: 1.6 }}>
-        If you are in immediate danger, please call your local emergency number (911 in the US).<br />
-        These resources are based in the United States.
-      </p>
     </div>
   );
 }

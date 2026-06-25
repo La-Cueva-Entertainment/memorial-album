@@ -148,15 +148,15 @@ export default function QuotesView({ admin, accent }: Props) {
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '40px 20px 70px' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <h1 style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(28px,4vw,40px)', color: '#3a342d', margin: '0 0 10px' }}>quotes by Cali</h1>
+        <h1 style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(28px,4vw,40px)', color: '#3a342d', margin: '0 0 10px' }}>Quotes by Cali</h1>
         <p style={{ fontFamily: "'Spectral', serif", fontStyle: 'italic', fontSize: 15, color: '#6f665a', margin: 0 }}>
-          the things she said that we&apos;ll never forget. add one you remember.
+          The things she said that we&apos;ll never forget. Add one you remember.
         </p>
       </div>
 
       {/* Compose */}
       <div style={{ background: '#fffdf8', borderRadius: 16, boxShadow: '0 5px 18px rgba(60,40,20,.09)', border: '1px solid #ece1cb', padding: '22px 20px', marginBottom: 36, maxWidth: 680, marginInline: 'auto' }}>
-        <textarea ref={quoteRef} placeholder='"something she always said..."' rows={3}
+        <textarea ref={quoteRef} placeholder='"Something she always said..."' rows={3}
           style={{ display: 'block', width: '100%', fontFamily: "'Caveat', cursive", fontSize: 20, color: '#3a342d', border: '1px solid #e2d6bf', borderRadius: 10, background: '#fdf9f3', padding: '10px 12px', outline: 'none', resize: 'vertical', marginBottom: 14, boxSizing: 'border-box', lineHeight: 1.5 }}
         />
         <input ref={contextRef} placeholder="when / who remembers it (optional)"
@@ -183,7 +183,7 @@ export default function QuotesView({ admin, accent }: Props) {
 
         <button onClick={handleSubmit} disabled={submitting || uploading}
           style={{ fontFamily: "'Caveat', cursive", fontSize: 20, background: submitting || uploading ? '#d8cdb9' : accent, color: '#fff', border: 'none', padding: '10px 28px', borderRadius: 24, cursor: submitting || uploading ? 'not-allowed' : 'pointer', boxShadow: submitting || uploading ? 'none' : '0 3px 10px rgba(194,114,79,.3)' }}>
-          {uploading ? 'uploading...' : submitting ? 'adding...' : 'add this quote'}
+          {uploading ? 'Uploading…' : submitting ? 'Adding…' : 'Add This Quote'}
         </button>
       </div>
 
@@ -191,7 +191,7 @@ export default function QuotesView({ admin, accent }: Props) {
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#9a8e79', fontFamily: "'Spectral', serif" }}>loading...</div>
       ) : quotes.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#9a8e79', fontFamily: "'Spectral', serif", fontStyle: 'italic' }}>no quotes yet — add one you remember</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#9a8e79', fontFamily: "'Spectral', serif", fontStyle: 'italic' }}>No quotes yet — add one you remember.</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 18 }}>
           {quotes.map((quote, i) => (

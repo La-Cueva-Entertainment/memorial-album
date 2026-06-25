@@ -44,6 +44,22 @@ export default function HomeView({ admin, accent, onNav }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const rotateTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const DEFAULT_ABOUT_TITLE = 'About Cali';
+  const DEFAULT_ABOUT_BODY = `Cali was the daughter who made her parents proud of everything she did, the sister who somehow got along with everyone and kept the peace, the best friend who made it clear you were her person, and the soulmate who taught you what it means to love deeply.
+
+She was also the funny one. She had a laugh that was distinctly her and you'd do anything to constantly hear it. She could turn a boba run into an adventure and a dinner table into a comedy show. She loved fiercely and was endlessly loyal. Her presence alone could turn your whole day around.
+
+She had a nickname for everyone, a soft spot for good food and better company, and a gift for making whoever she was with feel like the most important person in the room. Cali was intentional about the people she kept close, and if you're here, you are one of them. That's not a small thing.
+
+She gave so much more than she ever asked for. This little place is for all of us, to keep her close, to share the photos, the stories, and the laughs, and to look after each other the way she always looked after us.`;
+
+  const [aboutTitle, setAboutTitle] = useState(DEFAULT_ABOUT_TITLE);
+  const [aboutBody, setAboutBody] = useState(DEFAULT_ABOUT_BODY);
+  const [editingAbout, setEditingAbout] = useState(false);
+  const [aboutTitleDraft, setAboutTitleDraft] = useState('');
+  const [aboutBodyDraft, setAboutBodyDraft] = useState('');
+  const [savingAbout, setSavingAbout] = useState(false);
+
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 880px)');
     setIsDesktop(mq.matches);
@@ -58,6 +74,8 @@ export default function HomeView({ admin, accent, onNav }: Props) {
       .then((cfg: Record<string, string>) => {
         if (cfg.bio_hero_img_path) setPortrait(cfg.bio_hero_img_path);
         if (cfg.default_album_link) setAlbumShareLink(cfg.default_album_link);
+        if (cfg.home_about_title) setAboutTitle(cfg.home_about_title);
+        if (cfg.home_about_body) setAboutBody(cfg.home_about_body);
       })
       .catch(() => {});
 
@@ -74,12 +92,18 @@ export default function HomeView({ admin, accent, onNav }: Props) {
       .then((data: { assets?: ImmichAsset[] }) => {
         const imgs = (data.assets ?? []).filter(a => !a.type || a.type.toUpperCase() === 'IMAGE');
         setAlbumPhotos(imgs);
-        const portraitId = portrait?.startsWith('immich:') ? portrait.slice(7) : null;
-        const pool = portraitId ? imgs.filter(a => a.id !== portraitId) : imgs;
-        setDisplayedPhotos(shuffle(pool).slice(0, 4));
       })
       .catch(() => {});
   }, []);
+
+  // Re-compute displayed side photos whenever album photos or portrait changes
+  // This fixes the race condition where portrait loads after album photos
+  useEffect(() => {
+    if (albumPhotos.length === 0) return;
+    const portraitId = portrait?.startsWith('immich:') ? portrait.slice(7) : null;
+    const pool = portraitId ? albumPhotos.filter(a => a.id !== portraitId) : albumPhotos;
+    setDisplayedPhotos(shuffle(pool).slice(0, 4));
+  }, [albumPhotos, portrait]);
 
   // Rotate every 10 seconds with a random new set
   useEffect(() => {
@@ -277,18 +301,67 @@ export default function HomeView({ admin, accent, onNav }: Props) {
       </div>
 
       {/* ── About Cali ── */}
-      <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 28px' }}>
-        <h2 style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(22px,3vw,30px)', fontWeight: 700, color: '#3a342d', margin: '0 0 6px' }}>about Cali</h2>
-        <div style={{ width: 48, height: 2, background: accent, borderRadius: 2, margin: '0 auto 16px' }} />
-        <p style={{ fontFamily: "'Spectral', serif", fontSize: 'clamp(14px,1.6vw,16px)', lineHeight: 1.65, color: '#52483c', margin: '0 0 12px' }}>
-          Cali was the kind of person who made every room warmer just by being in it. She had a laugh you could hear across the hall and a warmth that turned strangers into friends before the night was over. She noticed things &mdash; a good song, a perfect meal, a golden afternoon with the people she loved.
-        </p>
-        <p style={{ fontFamily: "'Spectral', serif", fontSize: 'clamp(14px,1.6vw,16px)', lineHeight: 1.65, color: '#52483c', margin: '0 0 12px' }}>
-          She was fiercely loyal, endlessly funny, and wiser than she let on. She said the thing no one else dared to say &mdash; and somehow made it sound like the most obvious truth in the world. Her words are all over this site, because she handed them out freely to everyone lucky enough to know her.
-        </p>
-        <p style={{ fontFamily: "'Spectral', serif", fontSize: 'clamp(14px,1.6vw,16px)', lineHeight: 1.65, color: '#52483c', margin: 0 }}>
-          Good music. Boba runs. Mahjong nights. Road trips with the windows down. Ocean Spray. Her cats. Family dinners that somehow became adventures. California sunshine. Her people &mdash; the ones she loved to the end.
-        </p>
+      <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 28px', position: 'relative' }}>
+        {editingAbout ? (
+          <div style={{ textAlign: 'left' }}>
+            <input
+              value={aboutTitleDraft}
+              onChange={e => setAboutTitleDraft(e.target.value)}
+              style={{ display: 'block', width: '100%', fontFamily: "'Caveat', cursive", fontSize: 'clamp(22px,3vw,30px)', fontWeight: 700, color: '#3a342d', border: 'none', borderBottom: '2px solid ' + accent, background: 'transparent', outline: 'none', marginBottom: 12, boxSizing: 'border-box', textAlign: 'center' }}
+            />
+            <textarea
+              value={aboutBodyDraft}
+              onChange={e => setAboutBodyDraft(e.target.value)}
+              rows={10}
+              style={{ display: 'block', width: '100%', fontFamily: "'Spectral', serif", fontSize: 'clamp(14px,1.6vw,16px)', lineHeight: 1.65, color: '#52483c', border: '1px solid #e2d6bf', borderRadius: 10, background: '#fdf9f3', padding: '10px 12px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: 12 }}
+            />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button
+                onClick={async () => {
+                  setSavingAbout(true);
+                  await fetch('/api/site-config', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ home_about_title: aboutTitleDraft, home_about_body: aboutBodyDraft }),
+                  });
+                  setAboutTitle(aboutTitleDraft);
+                  setAboutBody(aboutBodyDraft);
+                  setSavingAbout(false);
+                  setEditingAbout(false);
+                }}
+                disabled={savingAbout}
+                style={{ fontFamily: "'Spectral', serif", fontSize: 14, background: accent, color: '#fff', border: 'none', borderRadius: 18, padding: '7px 20px', cursor: 'pointer' }}
+              >
+                {savingAbout ? 'Saving…' : 'Save'}
+              </button>
+              <button
+                onClick={() => setEditingAbout(false)}
+                style={{ fontFamily: "'Spectral', serif", fontSize: 14, background: 'transparent', color: '#9a8e79', border: '1px solid #d8cdb9', borderRadius: 18, padding: '7px 16px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h2 style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(22px,3vw,30px)', fontWeight: 700, color: '#3a342d', margin: '0 0 6px' }}>{aboutTitle}</h2>
+            <div style={{ width: 48, height: 2, background: accent, borderRadius: 2, margin: '0 auto 16px' }} />
+            {aboutBody.split('\n\n').filter(Boolean).map((para, i) => (
+              <p key={i} style={{ fontFamily: "'Spectral', serif", fontSize: 'clamp(14px,1.6vw,16px)', lineHeight: 1.65, color: '#52483c', margin: i < aboutBody.split('\n\n').filter(Boolean).length - 1 ? '0 0 12px' : 0 }}>
+                {para}
+              </p>
+            ))}
+            {admin && (
+              <button
+                onClick={() => { setAboutTitleDraft(aboutTitle); setAboutBodyDraft(aboutBody); setEditingAbout(true); }}
+                title="Edit about section"
+                style={{ position: 'absolute', top: 0, right: 0, background: 'transparent', border: '1px solid #d8cdb9', color: '#9a8e79', borderRadius: 16, padding: '3px 10px', fontSize: 13, cursor: 'pointer', fontFamily: "'Spectral', serif" }}
+              >
+                ✎ Edit
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       {/* ── Quick links ── */}

@@ -56,10 +56,10 @@ export default function MessagesView({ admin, accent }: Props) {
       {/* Heading */}
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <h1 style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(28px,4vw,40px)', color: '#3a342d', margin: '0 0 10px' }}>
-          messages for Cali
+          Messages for Cali
         </h1>
         <p style={{ fontFamily: "'Spectral', serif", fontStyle: 'italic', fontSize: 15, color: '#6f665a', margin: 0 }}>
-          leave a note, a memory, a goodbye. she&apos;d love to hear from you.
+          Leave a note, a happy memory, or anything at all. She'd love to hear from you.
         </p>
       </div>
 
@@ -74,7 +74,7 @@ export default function MessagesView({ admin, accent }: Props) {
       }}>
         <input
           ref={nameRef}
-          placeholder="your name"
+          placeholder="Your name"
           style={{
             display: 'block',
             width: '100%',
@@ -92,7 +92,7 @@ export default function MessagesView({ admin, accent }: Props) {
         />
         <textarea
           ref={textRef}
-          placeholder="write your message…"
+          placeholder="Write your message…"
           rows={4}
           style={{
             display: 'block',
@@ -131,7 +131,7 @@ export default function MessagesView({ admin, accent }: Props) {
             boxShadow: submitting ? 'none' : '0 3px 10px rgba(194,114,79,.3)',
           }}
         >
-          {submitting ? 'posting…' : 'leave your message'}
+          {submitting ? 'Posting…' : 'Leave Your Message'}
         </button>
       </div>
 
@@ -140,7 +140,7 @@ export default function MessagesView({ admin, accent }: Props) {
         <div style={{ textAlign: 'center', padding: 32, color: '#9a8e79', fontFamily: "'Spectral', serif" }}>loading…</div>
       ) : notes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 32, color: '#9a8e79', fontFamily: "'Spectral', serif", fontStyle: 'italic' }}>
-          no messages yet — be the first to leave one
+          No messages yet — be the first to leave one.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

@@ -22,19 +22,17 @@ type EventConfig = {
   event_venue: string;
   event_dress: string;
   event_dress_note: string;
-  event_bring: string;
   event_notes: string;
 };
 
 const DEFAULTS: EventConfig = {
-  event_date: 'Saturday, [date]',
-  event_time: 'golden hour, from 5:00pm',
-  event_where: 'Los Angeles',
-  event_venue: '[venue / rooftop]',
-  event_dress: 'dressed to dance',
-  event_dress_note: 'gold, midnight blue, a little sparkle',
-  event_bring: 'a memory & a song',
-  event_notes: 'Dress to dance \u2014 golds, midnight blue, a little sparkle. She\u2019d want the room to shine.\nBring a photo or a memory to share; we\u2019ll be collecting them all night.\nStay for the music \u2014 there will be boba, and probably dancing. \ud83e\uddcb',
+  event_date: 'A lovely night',
+  event_time: '',
+  event_where: 'City of stars',
+  event_venue: '(are you shining just for me?)',
+  event_dress: 'In your polyester suit',
+  event_dress_note: '(it\'s wool)',
+  event_notes: '',
 };
 
 export default function OceanSprayView({ admin }: Props) {
@@ -146,7 +144,7 @@ export default function OceanSprayView({ admin }: Props) {
           lineHeight: 1.65,
           marginBottom: 'clamp(28px,4vw,48px)',
         }}>
-          a night under the city of stars &mdash;<br />for our girl who always dreamed &#127916;
+          Sunset at sea in the city of stars &mdash;<br />for our girl who always dreamed &#127916;
         </div>
 
         {/* ── Fact cards ── */}
@@ -160,9 +158,7 @@ export default function OceanSprayView({ admin }: Props) {
           <FactCard icon="&#128205;" label="WHERE" main={config.event_where} sub={config.event_venue} />
           <FactCard icon="&#10024;"  label="DRESS" main={config.event_dress} sub={config.event_dress_note} />
         </div>
-        <div style={{ marginBottom: 14, maxWidth: 280 }}>
-          <FactCard icon="&#127926;" label="BRING" main={config.event_bring} sub="a photo or story to share" />
-        </div>
+       
 
         {/* ── Notes card ── */}
         <div style={{
@@ -181,7 +177,7 @@ export default function OceanSprayView({ admin }: Props) {
             alignItems: 'center',
             gap: 8,
           }}>
-            <span>&#10022;</span> a few notes
+            <span>&#10022;</span> Event details coming soon <span>&#10022;</span>
           </div>
           <ul style={{ margin: 0, padding: '0 0 0 18px' }}>
             {notes.map((line, i) => (
@@ -228,7 +224,7 @@ export default function OceanSprayView({ admin }: Props) {
             {([
               ['Date', 'event_date'], ['Time', 'event_time'], ['City', 'event_where'],
               ['Venue', 'event_venue'], ['Dress code', 'event_dress'], ['Dress note', 'event_dress_note'],
-              ['What to bring', 'event_bring'],
+              
             ] as [string, keyof EventConfig][]).map(([lbl, k]) => (
               <div key={k} style={{ marginBottom: 12 }}>
                 <label style={{ fontFamily: "'Spectral', serif", fontSize: 12, color: 'rgba(255,255,255,.5)', display: 'block', marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: '.1em' }}>{lbl}</label>
@@ -261,7 +257,7 @@ export default function OceanSprayView({ admin }: Props) {
 
         {/* RSVP */}
         <div style={{ textAlign: 'center' }}>
-          <button
+          {/* <button
             onClick={() => setRsvped(r => !r)}
             style={{
               fontFamily: "'Caveat', cursive",
@@ -277,7 +273,7 @@ export default function OceanSprayView({ admin }: Props) {
             }}
           >
             {rsvped ? '\u2665 we\u2019ll see you there' : 'let us know you\u2019re coming'}
-          </button>
+          </button> */}
           <div style={{
             fontFamily: "'Spectral', serif",
             fontStyle: 'italic',
@@ -285,7 +281,7 @@ export default function OceanSprayView({ admin }: Props) {
             color: 'rgba(255,255,255,.45)',
             letterSpacing: '.04em',
           }}>
-            here&apos;s to her &mdash; our brightest dreamer &#10022;
+            Here&apos;s to Cali &mdash; our brightest dreamer &#10022;
           </div>
         </div>
       </div>

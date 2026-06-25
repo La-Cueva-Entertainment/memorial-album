@@ -75,10 +75,10 @@ export default function AlbumsView({ admin, accent }: Props) {
       {/* Heading */}
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <h1 style={{ fontFamily: "'Caveat', cursive", fontSize: 'clamp(28px,4vw,40px)', color: '#3a342d', margin: '0 0 10px' }}>
-          photo albums
+          Photo Albums
         </h1>
         <p style={{ fontFamily: "'Spectral', serif", fontStyle: 'italic', fontSize: 15, color: '#6f665a', margin: 0, maxWidth: 540, marginInline: 'auto' }}>
-          tap an album to open it and add your own photos. don&apos;t have one? just hit &ldquo;add your photos.&rdquo;
+          Select an existing or create your own album to add your photos.
         </p>
       </div>
 
@@ -107,7 +107,7 @@ export default function AlbumsView({ admin, accent }: Props) {
       )}
 
       {/* Primary actions — always visible (mobile + desktop) */}
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 36 }}>
         <button
           onClick={handleAddPhotos}
           style={{
@@ -118,7 +118,7 @@ export default function AlbumsView({ admin, accent }: Props) {
             display: 'flex', alignItems: 'center', gap: 8,
           }}
         >
-          <span style={{ fontSize: 18 }}>&#8593;</span> add your photos
+          <span style={{ fontSize: 18 }}>&#8593;</span> Add Your Photos
         </button>
 
         {/* Create album — open to all visitors */}
@@ -136,7 +136,7 @@ export default function AlbumsView({ admin, accent }: Props) {
             opacity: albumLimitReached ? 0.5 : 1,
           }}
         >
-          <span style={{ fontSize: 18 }}>+</span> create a new album
+          <span style={{ fontSize: 18 }}>+</span> Create a New Album
         </button>
       </div>
 
@@ -146,12 +146,7 @@ export default function AlbumsView({ admin, accent }: Props) {
         </p>
       )}
 
-      <p style={{
-        textAlign: 'center', fontFamily: "'Spectral', serif", fontSize: 14, color: '#9a8e79',
-        fontStyle: 'italic', marginBottom: 36, maxWidth: 520, marginInline: 'auto',
-      }}>
-        &ldquo;Add your photos&rdquo; opens our shared album — no account needed.
-      </p>
+      
 
       {/* Album grid */}
       {loading ? (
@@ -177,7 +172,7 @@ export default function AlbumsView({ admin, accent }: Props) {
           ))}
           {!defaultAlbumLink && albums.length === 0 && (
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 40, color: '#9a8e79', fontFamily: "'Spectral', serif", fontStyle: 'italic' }}>
-              no albums yet — create one to get started
+              No albums yet — create one to get started.
             </div>
           )}
         </div>
@@ -187,7 +182,7 @@ export default function AlbumsView({ admin, accent }: Props) {
         textAlign: 'center', fontFamily: "'Spectral', serif", fontSize: 13, color: '#a8997f',
         fontStyle: 'italic', maxWidth: 540, marginInline: 'auto',
       }}>
-        everything lives in our shared photo library &middot; every memory stays safe
+        Everything lives in our shared photo library where every memory stays safe. No account needed.
       </p>
 
       {modalOpen && (

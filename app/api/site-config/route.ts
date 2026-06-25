@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest) {
     'event_date', 'event_time', 'event_where', 'event_venue',
     'event_dress', 'event_dress_note', 'event_bring', 'event_notes',
     'default_album_link', 'default_album_name', 'default_album_cover_asset_id',
+    'home_about_title', 'home_about_body',
   ];
 
   for (const [key, value] of Object.entries(body)) {

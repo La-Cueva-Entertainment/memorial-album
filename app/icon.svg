@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Straw -->
+  <rect x="14.5" y="1" width="3" height="11" rx="1.5" fill="#e8916a"/>
+  <!-- Lid -->
+  <path d="M7 11 Q16 8.5 25 11 L25 13 Q16 10.5 7 13 Z" fill="#c2724f"/>
+  <!-- Cup body -->
+  <path d="M7 13 L9 29 Q16 32 23 29 L25 13 Z" fill="#f5ddc8"/>
+  <!-- Drink fill (milk tea) -->
+  <path d="M7.5 15 L9 29 Q16 32 23 29 L24.5 15 Z" fill="#d4a47e" opacity="0.65"/>
+  <!-- Tapioca pearls -->
+  <circle cx="13" cy="22" r="2.8" fill="#5a2d1a"/>
+  <circle cx="19" cy="22" r="2.8" fill="#5a2d1a"/>
+  <circle cx="16" cy="25.5" r="2.8" fill="#5a2d1a"/>
+</svg>
