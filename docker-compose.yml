@@ -19,7 +19,7 @@ services:
       IMMICH_ALBUM_ID: ""
       NEXT_PUBLIC_IMMICH_SERVER_URL: ""
       NEXT_PUBLIC_IMMICH_ALBUM_ID: ""
-      NEXT_PUBLIC_BASE_URL: ""    # e.g. https://welovecali.com
+      NEXT_PUBLIC_BASE_URL: "https://welovecali.lacueva.us"  # canonical domain — used for og:image URL in link previews
       GOOGLE_CLIENT_ID: ""
       GOOGLE_CLIENT_SECRET: ""
       GOOGLE_ADMIN_EMAILS: ""     # comma-separated admin emails

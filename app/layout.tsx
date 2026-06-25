@@ -6,23 +6,32 @@ const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME ?? 'Kathryn Cali Lee';
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? '';
 
 /** Derive the public origin from the actual incoming request.
- *  Checks headers in priority order to handle Cloudflare → Nginx → Docker chains. */
+ *
+ *  IMPORTANT: NGINX Proxy Manager internally proxies to Docker over HTTP and
+ *  therefore overwrites X-Forwarded-Proto with "http" before the request reaches
+ *  Next.js — even though Cloudflare → Nginx is HTTPS.  We must NOT trust that
+ *  header for the scheme.  Instead: any host that isn't localhost / a private-IP
+ *  range is always HTTPS in production. */
 async function getOrigin(): Promise<string> {
+  // Prefer an explicit env var so the URL is always deterministic.
+  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '');
+  if (envBase) return envBase;
+
   try {
     const h = await headers();
-    // x-forwarded-host is set by Nginx Proxy Manager when it has multiple upstreams
+    // x-forwarded-host is set by NPM; fall back to Host.
     const host =
       h.get('x-forwarded-host')?.split(',')[0].trim() ??
       h.get('host');
-    // Cloudflare sets x-forwarded-proto; CF-Visitor is a fallback
-    const cfVisitor = h.get('cf-visitor'); // e.g. {"scheme":"https"}
-    const cfProto = cfVisitor ? (JSON.parse(cfVisitor) as { scheme?: string }).scheme : null;
-    const proto = h.get('x-forwarded-proto')?.split(',')[0].trim() ?? cfProto ?? 'https';
-    if (host) return `${proto}://${host}`;
+    if (host) {
+      // Use http only for local / private-IP development; always https otherwise.
+      const isLocal = /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(host);
+      return `${isLocal ? 'http' : 'https'}://${host}`;
+    }
   } catch {
-    // headers() throws outside of a request context (e.g. static build)
+    // headers() unavailable outside of a request context
   }
-  return process.env.NEXT_PUBLIC_BASE_URL ?? 'https://welovekat.lacueva.us';
+  return 'https://welovekat.lacueva.us';
 }
 
 export async function generateMetadata(): Promise<Metadata> {
