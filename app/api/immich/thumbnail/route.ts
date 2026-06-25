@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': res.headers.get('Content-Type') ?? 'image/jpeg',
-        'Cache-Control': 'private, max-age=300',
+        // public so OG/link-preview crawlers (iMessage, WhatsApp, etc.) can fetch the image
+        'Cache-Control': 'public, max-age=300',
       },
     });
   } catch {
